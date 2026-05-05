@@ -19,7 +19,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup">("signup");
   const navigate = useNavigate();
   const { isSignedIn, isLoaded, user } = useUser();
   const { getToken } = useAuth();

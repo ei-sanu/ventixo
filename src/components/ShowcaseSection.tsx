@@ -113,12 +113,7 @@ export function ShowcaseSection() {
 
           {/* CENTER: PHONE WITH HAND */}
           <div className="relative order-1 lg:order-2 flex justify-center items-center lg:min-w-[500px]">
-            <PhoneWithHand
-              activeCard={activeCard}
-              isPhoneHovered={!!hovered}
-              hoveredId={hovered}
-              isMobile={isMobile}
-            />
+            <PhoneWithHand activeCard={activeCard} isPhoneHovered={!!hovered} hoveredId={hovered} />
           </div>
 
           {/* RIGHT CARDS */}
@@ -143,54 +138,48 @@ function PhoneWithHand({
   activeCard,
   isPhoneHovered,
   hoveredId,
-  isMobile,
 }: {
   activeCard: (typeof SHOWCASE_DATA)[0];
   isPhoneHovered: boolean;
   hoveredId: string | null;
-  isMobile: boolean;
 }) {
   return (
-    <div className="relative w-[340px] md:w-[460px] mx-auto flex justify-center items-center">
+    <div className="relative w-full max-w-[460px] mx-auto">
       {/* DEPTH GLOW BEHIND PHONE */}
       <div className="absolute inset-0 flex justify-center items-center z-0">
-        <div className="w-[300px] h-[300px] md:w-[380px] md:h-[380px] rounded-full bg-purple-500/10 blur-3xl"></div>
+        <div className="w-[300px] h-[300px] md:w-[380px] md:h-[380px] bg-purple-500/10 blur-3xl rounded-full"></div>
       </div>
 
       <motion.div
         animate={{
-          y: [0, -12, 0],
-          rotateY: isPhoneHovered ? 8 : isMobile ? 3 : 6,
-          rotateX: isMobile ? 1 : 2,
+          y: [0, -10, 0],
           scale: isPhoneHovered ? 1.02 : 1,
         }}
-        //@ts-expect-error - Framer motion type issue with multi-transition
         transition={{
           y: { duration: 5, repeat: Infinity, ease: "easeInOut" },
-          rotateY: { duration: 0.3 },
-          rotateX: { duration: 0.3 },
           scale: { duration: 0.3 },
         }}
-        style={{
-          perspective: 1200,
-          transformStyle: "preserve-3d",
-        }}
-        className="relative w-full select-none z-10"
+        className="relative z-10 w-full"
       >
-        {/* HAND + PHONE MOCKUP */}
+        {/* PHONE IMAGE (BASE FRAME) */}
         <img
           src={IPHONE_IMAGE}
           alt="Hand holding iPhone"
-          className="w-full h-auto object-contain relative z-10 pointer-events-none"
-          style={{
-            filter: "drop-shadow(0px 40px 60px rgba(0,0,0,0.12))",
-          }}
+          className="w-full h-auto relative z-10 select-none pointer-events-none object-contain"
         />
 
         {/* SCREEN OVERLAY: EXACTLY OVER PHONE SCREEN */}
-        <div className="absolute top-[2.5%] left-[7.2%] right-[7.2%] bottom-[2.5%] z-20 overflow-hidden rounded-[2.5rem] md:rounded-[3rem] bg-background">
+        <div
+          className="absolute z-20 overflow-hidden rounded-[20px] md:rounded-[28px] bg-background"
+          style={{
+            top: "14.5%",
+            left: "22%",
+            width: "56.5%",
+            height: "71.5%",
+          }}
+        >
           {/* Screen Content */}
-          <div className="relative h-full p-4 md:p-6 pt-10 md:pt-14 overflow-hidden flex flex-col gap-4 md:gap-6">
+          <div className="relative h-full w-full p-3 md:p-5 pt-6 md:pt-10 overflow-hidden flex flex-col gap-3 md:gap-5">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeCard.id}
@@ -198,28 +187,28 @@ function PhoneWithHand({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className="space-y-4 md:space-y-6"
+                className="space-y-3 md:space-y-5"
               >
                 {/* Header Section */}
                 <div className="flex justify-between items-center">
-                  <div className="space-y-0.5 md:space-y-1">
-                    <div className="text-[8px] md:text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                  <div className="space-y-0.5">
+                    <div className="text-[7px] md:text-[9px] text-muted-foreground font-bold uppercase tracking-widest">
                       Dashboard
                     </div>
-                    <div className="text-sm md:text-lg font-bold">Event Overview</div>
+                    <div className="text-[10px] md:text-sm font-bold">Event Overview</div>
                   </div>
-                  <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-foreground/5 border border-foreground/5" />
+                  <div className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-foreground/5 border border-foreground/5" />
                 </div>
 
                 {/* Event Card in UI */}
                 <div
-                  className={`p-4 md:p-5 rounded-[1.5rem] md:rounded-[2rem] space-y-3 md:space-y-4 border transition-all duration-300 ${
+                  className={`p-3 md:p-4 rounded-xl md:rounded-2xl space-y-2 md:space-y-3 border transition-all duration-300 ${
                     hoveredId === "tech-fest"
                       ? "bg-foreground/5 border-foreground/10 brightness-110 ring-1 ring-foreground/5"
                       : "bg-foreground/[0.03] border-foreground/5"
                   }`}
                 >
-                  <div className="h-28 md:h-36 rounded-xl md:rounded-2xl bg-background/50 overflow-hidden relative border border-foreground/5">
+                  <div className="h-20 md:h-28 rounded-lg md:rounded-xl bg-background/50 overflow-hidden relative border border-foreground/5">
                     <div
                       className="absolute inset-0 opacity-20"
                       style={{
@@ -228,20 +217,20 @@ function PhoneWithHand({
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <activeCard.icon
-                        size={48}
-                        className="md:size-16"
+                        size={32}
+                        className="md:size-10"
                         style={{ color: activeCard.color }}
                       />
                     </div>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm md:text-lg font-bold tracking-tight">
+                    <span className="text-[9px] md:text-[13px] font-bold tracking-tight truncate mr-1">
                       {activeCard.ui.title}
                     </span>
-                    <div className="flex items-center gap-1.5">
-                      <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                    <div className="flex items-center gap-1 shrink-0">
+                      <div className="h-1 w-1 rounded-full bg-red-500 animate-pulse" />
                       <span
-                        className="text-[8px] md:text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
+                        className="text-[6px] md:text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider"
                         style={{
                           backgroundColor: `${activeCard.color}20`,
                           color: activeCard.color,
@@ -251,7 +240,7 @@ function PhoneWithHand({
                       </span>
                     </div>
                   </div>
-                  <div className="flex justify-between text-[10px] md:text-[12px] text-muted-foreground font-medium">
+                  <div className="flex justify-between text-[7px] md:text-[10px] text-muted-foreground font-medium">
                     <span>{activeCard.ui.date}</span>
                     <span>{activeCard.ui.tickets.toLocaleString()} attendees</span>
                   </div>
@@ -259,23 +248,23 @@ function PhoneWithHand({
 
                 {/* Ticket Preview UI */}
                 <div
-                  className={`p-4 md:p-5 rounded-[1.5rem] md:rounded-[2rem] border transition-all duration-300 ${
+                  className={`p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all duration-300 ${
                     hoveredId === "neon-nights"
                       ? "bg-foreground/5 border-foreground/10 brightness-110 ring-1 ring-foreground/5"
                       : "bg-foreground/[0.02] border-foreground/5"
-                  } space-y-3 md:space-y-4`}
+                  } space-y-2 md:space-y-3`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 md:gap-3">
-                      <div className="h-7 w-7 md:h-8 md:w-8 rounded-lg md:rounded-xl bg-foreground/5 flex items-center justify-center">
-                        <FiZap size={14} className="md:size-4 text-foreground/70" />
+                    <div className="flex items-center gap-1.5 md:gap-2">
+                      <div className="h-5 w-5 md:h-6 md:w-6 rounded-md md:rounded-lg bg-foreground/5 flex items-center justify-center">
+                        <FiZap size={10} className="md:size-3 text-foreground/70" />
                       </div>
-                      <span className="text-xs md:text-sm font-bold">Smart Ticket</span>
+                      <span className="text-[8px] md:text-[11px] font-bold">Smart Ticket</span>
                     </div>
-                    <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-green-500" />
+                    <div className="h-1 w-1 md:h-1.5 md:w-1.5 rounded-full bg-green-500" />
                   </div>
-                  <div className="h-12 md:h-14 w-full rounded-xl md:rounded-2xl bg-foreground/5 flex flex-col justify-center px-4 md:px-5 gap-1 md:gap-2">
-                    <div className="flex justify-between text-[8px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                  <div className="h-8 md:h-10 w-full rounded-lg md:rounded-xl bg-foreground/5 flex flex-col justify-center px-3 md:px-4 gap-0.5 md:gap-1">
+                    <div className="flex justify-between text-[6px] md:text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
                       <span>Verification</span>
                       <span>98%</span>
                     </div>
@@ -291,30 +280,30 @@ function PhoneWithHand({
                 </div>
 
                 {/* Minimal Dashboard Stats */}
-                <div className="grid grid-cols-2 gap-3 md:gap-4">
+                <div className="grid grid-cols-2 gap-2 md:gap-3">
                   <div
-                    className={`p-3 md:p-4 rounded-[1.2rem] md:rounded-[1.8rem] border transition-all duration-300 ${
+                    className={`p-2 md:p-3 rounded-lg md:rounded-xl border transition-all duration-300 ${
                       hoveredId === "workshop"
                         ? "bg-foreground/5 border-foreground/10 brightness-110 ring-1 ring-foreground/5"
                         : "bg-foreground/[0.02] border-foreground/5"
                     }`}
                   >
-                    <div className="text-[8px] md:text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-1">
+                    <div className="text-[6px] md:text-[8px] text-muted-foreground font-bold uppercase tracking-wider mb-0.5">
                       Revenue
                     </div>
-                    <div className="text-xs md:text-base font-bold">$12,450</div>
+                    <div className="text-[9px] md:text-xs font-bold">$12,450</div>
                   </div>
                   <div
-                    className={`p-3 md:p-4 rounded-[1.2rem] md:rounded-[1.8rem] border transition-all duration-300 ${
+                    className={`p-2 md:p-3 rounded-lg md:rounded-xl border transition-all duration-300 ${
                       hoveredId === "spark-hack"
                         ? "bg-foreground/5 border-foreground/10 brightness-110 ring-1 ring-foreground/5"
                         : "bg-foreground/[0.02] border-foreground/5"
                     }`}
                   >
-                    <div className="text-[8px] md:text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-1">
+                    <div className="text-[6px] md:text-[8px] text-muted-foreground font-bold uppercase tracking-wider mb-0.5">
                       Check-in
                     </div>
-                    <div className="text-xs md:text-base font-bold">Gate A-04</div>
+                    <div className="text-[9px] md:text-xs font-bold">Gate A-04</div>
                   </div>
                 </div>
               </motion.div>

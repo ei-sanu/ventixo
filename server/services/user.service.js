@@ -127,7 +127,7 @@ export const syncUser = async ({ clerkId, username: providedUsername }) => {
 
 export const getUserProfile = async (userId) => {
   const user = await User.findById(userId)
-    .select("username userId email createdEvents joinedEvents createdAt")
+    .select("username userId email firstName lastName createdEvents joinedEvents createdAt")
     .populate({
       path: "createdEvents",
       select: "title category teamType status isPublished date location createdAt",
@@ -136,6 +136,25 @@ export const getUserProfile = async (userId) => {
       path: "joinedEvents",
       select: "title category teamType status isPublished date location createdAt",
     });
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return user;
+};
+
+export const updateUserProfile = async (userId, { firstName, lastName }) => {
+  const user = await User.findByIdAndUpdate(
+    userId,
+    {
+      $set: {
+        ...(firstName !== undefined && { firstName: firstName.trim() }),
+        ...(lastName !== undefined && { lastName: lastName.trim() }),
+      },
+    },
+    { new: true },
+  ).select("username userId email firstName lastName createdEvents joinedEvents createdAt");
 
   if (!user) {
     throw new ApiError(404, "User not found");

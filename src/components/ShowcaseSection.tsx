@@ -1,359 +1,239 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
-import { FiMusic, FiZap, FiTarget, FiHeart } from "react-icons/fi";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useState, useEffect } from "react";
+import { FiPlusSquare, FiCheckCircle, FiBarChart2, FiShield, FiX } from "react-icons/fi";
+import { Link } from "@tanstack/react-router";
 
-const SHOWCASE_DATA = [
+const FEATURE_DATA = [
   {
-    id: "tech-fest",
-    title: "Tech Fest 2026",
-    desc: "The largest developer conference in the region.",
-    icon: FiZap,
-    color: "oklch(0.7 0.15 260)",
-    side: "left",
-    ui: {
-      title: "Tech Fest 2026",
-      date: "Oct 12-14",
-      tickets: 4200,
-      status: "Live",
-    },
+    id: "event-creation",
+    title: "Event Creation",
+    subtitle: "Host and manage events effortlessly",
+    description:
+      "Create and publish events in seconds with full customization, team support, and audience targeting.",
+    icon: FiPlusSquare,
+    color: "oklch(0.6 0.2 260)",
   },
   {
-    id: "workshop",
-    title: "UI Masterclass",
-    desc: "Deep dive into modern design systems.",
-    icon: FiTarget,
-    color: "oklch(0.6 0.12 180)",
-    side: "left",
-    ui: {
-      title: "UI Masterclass",
-      date: "Dec 01",
-      tickets: 150,
-      status: "Limited",
-    },
-  },
-  {
-    id: "neon-nights",
-    title: "Neon Nights",
-    desc: "An immersive audio-visual concert experience.",
-    icon: FiMusic,
+    id: "ticket-validation",
+    title: "Ticket Validation",
+    subtitle: "Secure QR-based entry system",
+    description:
+      "Validate tickets instantly using secure QR codes with real-time verification and fraud prevention.",
+    icon: FiCheckCircle,
     color: "oklch(0.65 0.18 290)",
-    side: "right",
-    ui: {
-      title: "Neon Nights",
-      date: "Nov 05",
-      tickets: 12000,
-      status: "Sold Out",
-    },
   },
   {
-    id: "spark-hack",
-    title: "Spark Hack",
-    desc: "Build the future of decentralized ticketing.",
-    icon: FiHeart,
+    id: "analytics",
+    title: "Analytics Dashboard",
+    subtitle: "Track attendees and performance",
+    description: "Monitor attendance, revenue, and engagement with powerful real-time insights.",
+    icon: FiBarChart2,
+    color: "oklch(0.6 0.15 180)",
+  },
+  {
+    id: "payments",
+    title: "Secure Payments",
+    subtitle: "Fast and safe ticket transactions",
+    description:
+      "Enable seamless transactions with encrypted payment gateways and instant confirmations.",
+    icon: FiShield,
     color: "oklch(0.6 0.2 20)",
-    side: "right",
-    ui: {
-      title: "Spark Hack",
-      date: "Jan 15-17",
-      tickets: 500,
-      status: "Open",
-    },
   },
 ];
 
-const IPHONE_IMAGE = "/iphone-hand.png";
-
 export function ShowcaseSection() {
-  const [hovered, setHovered] = useState<string | null>(null);
-  const isMobile = useIsMobile();
-
-  const activeCard = SHOWCASE_DATA.find((c) => c.id === hovered) || SHOWCASE_DATA[0];
+  const [selectedFeature, setSelectedFeature] = useState<(typeof FEATURE_DATA)[0] | null>(null);
 
   return (
     <section className="relative py-32 overflow-hidden bg-background/50">
-      {/* GLOW BEHIND EVERYTHING */}
+      {/* GRID BACKGROUND */}
       <div className="absolute inset-0 grid-bg opacity-30 pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-6 relative">
-        {/* TOP CONTENT */}
-        <div className="text-center mb-24 relative z-10">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-4xl md:text-6xl font-bold tracking-tight"
-          >
-            A <span className="text-gradient">closer look</span> at the Ventixo experience
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="mt-6 text-xl text-muted-foreground max-w-2xl mx-auto"
-          >
-            Explore how events, tickets, and workflows come together in a seamless ecosystem.
-          </motion.p>
-        </div>
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
+        <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+          {/* LEFT: FEATURE STACK WITH BASE CONTAINER */}
+          <div className="relative order-2 lg:order-1 flex flex-col justify-center">
+            {/* BASE CONTAINER (SOFT PANEL) */}
+            <div
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
+                            w-[340px] md:w-[420px] h-[300px]
+                            rounded-3xl
+                            bg-white/60 dark:bg-white/5 backdrop-blur-xl
+                            shadow-[0_40px_100px_rgba(0,0,0,0.08)]
+                            z-0"
+            />
 
-        <div className="flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-8 relative min-h-[800px]">
-          {/* LEFT CARDS */}
-          <div className="flex flex-col gap-8 w-full max-w-sm order-2 lg:order-1 relative z-20">
-            {SHOWCASE_DATA.filter((c) => c.side === "left").map((card, i) => (
-              <FeatureCard
-                key={card.id}
-                card={card}
-                isHovered={hovered === card.id}
-                setHovered={setHovered}
-                index={i}
-              />
-            ))}
+            <div className="relative z-10 space-y-4 max-w-md mx-auto lg:mx-0 py-10">
+              {FEATURE_DATA.map((feature, i) => (
+                <FeatureCard
+                  key={feature.id}
+                  feature={feature}
+                  index={i}
+                  onClick={() => setSelectedFeature(feature)}
+                />
+              ))}
+            </div>
           </div>
 
-          {/* CENTER: PHONE WITH HAND */}
-          <div className="relative order-1 lg:order-2 flex justify-center items-center lg:min-w-[500px]">
-            <PhoneWithHand activeCard={activeCard} isPhoneHovered={!!hovered} hoveredId={hovered} />
-          </div>
+          {/* RIGHT: CONTENT */}
+          <div className="text-center lg:text-left order-1 lg:order-2">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-[1.1]"
+            >
+              Stay focused, stay <br />
+              <span className="text-gradient">productive</span>, and <br />
+              get more done
+            </motion.h2>
 
-          {/* RIGHT CARDS */}
-          <div className="flex flex-col gap-8 w-full max-w-sm order-3 relative z-20">
-            {SHOWCASE_DATA.filter((c) => c.side === "right").map((card, i) => (
-              <FeatureCard
-                key={card.id}
-                card={card}
-                isHovered={hovered === card.id}
-                setHovered={setHovered}
-                index={i + 2}
-              />
-            ))}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="mt-8 text-xl text-muted-foreground leading-relaxed max-w-xl mx-auto lg:mx-0"
+            >
+              Ventixo helps you manage events, tickets, and workflows with speed, clarity, and
+              intelligence.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="mt-10"
+            >
+              <Link
+                to="/login"
+                className="px-10 py-4 rounded-full bg-foreground text-background font-bold shadow-2xl hover:scale-[1.05] transition-all active:scale-[0.98] inline-block"
+              >
+                Get Started
+              </Link>
+            </motion.div>
           </div>
         </div>
       </div>
+
+      {/* FULL PAGE EXPANSION OVERLAY */}
+      <AnimatePresence>
+        {selectedFeature && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedFeature(null)}
+            className="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-4xl bg-background rounded-[2rem] p-8 md:p-12 shadow-2xl relative overflow-hidden"
+            >
+              {/* CLOSE BUTTON */}
+              <button
+                onClick={() => setSelectedFeature(null)}
+                className="absolute top-6 right-6 p-3 rounded-full bg-foreground/5 hover:bg-foreground/10 transition-colors z-20"
+              >
+                <FiX size={24} />
+              </button>
+
+              <div className="relative z-10 flex flex-col md:flex-row gap-8 md:gap-12 items-center md:items-start">
+                <div
+                  className="h-20 w-20 md:h-24 md:w-24 rounded-3xl flex items-center justify-center text-white shadow-2xl shrink-0"
+                  style={{ backgroundColor: selectedFeature.color }}
+                >
+                  <selectedFeature.icon size={48} />
+                </div>
+
+                <div className="flex-1 text-center md:text-left">
+                  <h3 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
+                    {selectedFeature.title}
+                  </h3>
+                  <div className="text-xl md:text-2xl text-muted-foreground leading-relaxed">
+                    <TypingText text={selectedFeature.description} />
+                  </div>
+                </div>
+              </div>
+
+              {/* ACCENT GLOW */}
+              <div
+                className="absolute -bottom-24 -right-24 w-64 h-64 blur-[100px] opacity-20 pointer-events-none"
+                style={{ backgroundColor: selectedFeature.color }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
 
-function PhoneWithHand({
-  activeCard,
-  isPhoneHovered,
-  hoveredId,
-}: {
-  activeCard: (typeof SHOWCASE_DATA)[0];
-  isPhoneHovered: boolean;
-  hoveredId: string | null;
-}) {
-  return (
-    <div className="relative w-full max-w-[460px] mx-auto">
-      {/* DEPTH GLOW BEHIND PHONE */}
-      <div className="absolute inset-0 flex justify-center items-center z-0">
-        <div className="w-[300px] h-[300px] md:w-[380px] md:h-[380px] bg-purple-500/10 blur-3xl rounded-full"></div>
-      </div>
-
-      <motion.div
-        animate={{
-          y: [0, -10, 0],
-          scale: isPhoneHovered ? 1.02 : 1,
-        }}
-        transition={{
-          y: { duration: 5, repeat: Infinity, ease: "easeInOut" },
-          scale: { duration: 0.3 },
-        }}
-        className="relative z-10 w-full"
-      >
-        {/* PHONE IMAGE (BASE FRAME) */}
-        <img
-          src={IPHONE_IMAGE}
-          alt="Hand holding iPhone"
-          className="w-full h-auto relative z-10 select-none pointer-events-none object-contain"
-        />
-
-        {/* SCREEN OVERLAY: EXACTLY OVER PHONE SCREEN */}
-        <div
-          className="absolute z-20 overflow-hidden rounded-[20px] md:rounded-[28px] bg-background"
-          style={{
-            top: "14.5%",
-            left: "22%",
-            width: "56.5%",
-            height: "71.5%",
-          }}
-        >
-          {/* Screen Content */}
-          <div className="relative h-full w-full p-3 md:p-5 pt-6 md:pt-10 overflow-hidden flex flex-col gap-3 md:gap-5">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeCard.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-3 md:space-y-5"
-              >
-                {/* Header Section */}
-                <div className="flex justify-between items-center">
-                  <div className="space-y-0.5">
-                    <div className="text-[7px] md:text-[9px] text-muted-foreground font-bold uppercase tracking-widest">
-                      Dashboard
-                    </div>
-                    <div className="text-[10px] md:text-sm font-bold">Event Overview</div>
-                  </div>
-                  <div className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-foreground/5 border border-foreground/5" />
-                </div>
-
-                {/* Event Card in UI */}
-                <div
-                  className={`p-3 md:p-4 rounded-xl md:rounded-2xl space-y-2 md:space-y-3 border transition-all duration-300 ${
-                    hoveredId === "tech-fest"
-                      ? "bg-foreground/5 border-foreground/10 brightness-110 ring-1 ring-foreground/5"
-                      : "bg-foreground/[0.03] border-foreground/5"
-                  }`}
-                >
-                  <div className="h-20 md:h-28 rounded-lg md:rounded-xl bg-background/50 overflow-hidden relative border border-foreground/5">
-                    <div
-                      className="absolute inset-0 opacity-20"
-                      style={{
-                        background: `radial-gradient(circle at center, ${activeCard.color}, transparent)`,
-                      }}
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <activeCard.icon
-                        size={32}
-                        className="md:size-10"
-                        style={{ color: activeCard.color }}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[9px] md:text-[13px] font-bold tracking-tight truncate mr-1">
-                      {activeCard.ui.title}
-                    </span>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <div className="h-1 w-1 rounded-full bg-red-500 animate-pulse" />
-                      <span
-                        className="text-[6px] md:text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider"
-                        style={{
-                          backgroundColor: `${activeCard.color}20`,
-                          color: activeCard.color,
-                        }}
-                      >
-                        {activeCard.ui.status}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between text-[7px] md:text-[10px] text-muted-foreground font-medium">
-                    <span>{activeCard.ui.date}</span>
-                    <span>{activeCard.ui.tickets.toLocaleString()} attendees</span>
-                  </div>
-                </div>
-
-                {/* Ticket Preview UI */}
-                <div
-                  className={`p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all duration-300 ${
-                    hoveredId === "neon-nights"
-                      ? "bg-foreground/5 border-foreground/10 brightness-110 ring-1 ring-foreground/5"
-                      : "bg-foreground/[0.02] border-foreground/5"
-                  } space-y-2 md:space-y-3`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 md:gap-2">
-                      <div className="h-5 w-5 md:h-6 md:w-6 rounded-md md:rounded-lg bg-foreground/5 flex items-center justify-center">
-                        <FiZap size={10} className="md:size-3 text-foreground/70" />
-                      </div>
-                      <span className="text-[8px] md:text-[11px] font-bold">Smart Ticket</span>
-                    </div>
-                    <div className="h-1 w-1 md:h-1.5 md:w-1.5 rounded-full bg-green-500" />
-                  </div>
-                  <div className="h-8 md:h-10 w-full rounded-lg md:rounded-xl bg-foreground/5 flex flex-col justify-center px-3 md:px-4 gap-0.5 md:gap-1">
-                    <div className="flex justify-between text-[6px] md:text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
-                      <span>Verification</span>
-                      <span>98%</span>
-                    </div>
-                    <div className="h-1 w-full bg-foreground/10 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: "98%" }}
-                        transition={{ duration: 1.5, ease: "easeOut" }}
-                        className="h-full bg-foreground/30"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Minimal Dashboard Stats */}
-                <div className="grid grid-cols-2 gap-2 md:gap-3">
-                  <div
-                    className={`p-2 md:p-3 rounded-lg md:rounded-xl border transition-all duration-300 ${
-                      hoveredId === "workshop"
-                        ? "bg-foreground/5 border-foreground/10 brightness-110 ring-1 ring-foreground/5"
-                        : "bg-foreground/[0.02] border-foreground/5"
-                    }`}
-                  >
-                    <div className="text-[6px] md:text-[8px] text-muted-foreground font-bold uppercase tracking-wider mb-0.5">
-                      Revenue
-                    </div>
-                    <div className="text-[9px] md:text-xs font-bold">$12,450</div>
-                  </div>
-                  <div
-                    className={`p-2 md:p-3 rounded-lg md:rounded-xl border transition-all duration-300 ${
-                      hoveredId === "spark-hack"
-                        ? "bg-foreground/5 border-foreground/10 brightness-110 ring-1 ring-foreground/5"
-                        : "bg-foreground/[0.02] border-foreground/5"
-                    }`}
-                  >
-                    <div className="text-[6px] md:text-[8px] text-muted-foreground font-bold uppercase tracking-wider mb-0.5">
-                      Check-in
-                    </div>
-                    <div className="text-[9px] md:text-xs font-bold">Gate A-04</div>
-                  </div>
-                </div>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
-
 function FeatureCard({
-  card,
-  isHovered,
-  setHovered,
+  feature,
   index,
+  onClick,
 }: {
-  card: (typeof SHOWCASE_DATA)[0];
-  isHovered: boolean;
-  setHovered: (id: string | null) => void;
+  feature: (typeof FEATURE_DATA)[0];
   index: number;
+  onClick: () => void;
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, x: card.side === "left" ? -30 : 30 }}
-      whileInView={{ opacity: 1, x: 0 }}
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.6, delay: index * 0.1 }}
-      onHoverStart={() => setHovered(card.id)}
-      onHoverEnd={() => setHovered(null)}
-      className={`group cursor-pointer rounded-[2.5rem] p-8 transition-all duration-500 backdrop-blur-sm ${
-        isHovered
-          ? "bg-background/80 shadow-[0_30px_60px_rgba(0,0,0,0.12)] -translate-y-3 border-foreground/10 ring-1 ring-foreground/10"
-          : "bg-background/40 hover:bg-background/60 shadow-soft border-transparent"
-      } border`}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+      whileHover={{ scale: 1.02 }}
+      onClick={onClick}
+      className="group relative flex items-center gap-5 p-5 bg-background/60 backdrop-blur-xl border border-foreground/5 rounded-2xl shadow-md hover:shadow-xl hover:bg-background/80 transition-all duration-500 cursor-pointer"
     >
-      <div className="flex items-center gap-5 mb-5">
-        <div
-          className="h-14 w-14 rounded-3xl flex items-center justify-center text-background transition-all group-hover:scale-110 group-hover:rotate-6 duration-500"
-          style={{ backgroundColor: card.color }}
-        >
-          <card.icon size={28} />
-        </div>
-        <h3 className="text-xl font-bold tracking-tight">{card.title}</h3>
+      <div
+        className="h-12 w-12 rounded-xl flex items-center justify-center text-white shadow-lg transition-transform group-hover:rotate-3"
+        style={{ backgroundColor: feature.color }}
+      >
+        <feature.icon size={22} />
       </div>
-      <p className="text-base text-muted-foreground leading-relaxed mb-5">{card.desc}</p>
-      <div className="flex items-center gap-2 text-sm font-bold text-foreground/40 group-hover:text-foreground transition-colors">
-        View details
-        <span className="group-hover:translate-x-2 transition-transform duration-500">→</span>
+      <div className="flex-1">
+        <h3 className="text-lg font-bold tracking-tight">{feature.title}</h3>
+        <p className="text-sm text-muted-foreground line-clamp-1">{feature.subtitle}</p>
+      </div>
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0 transition-transform duration-500">
+        <div className="h-8 w-8 rounded-full bg-foreground/5 flex items-center justify-center">
+          <span className="text-lg">→</span>
+        </div>
       </div>
     </motion.div>
+  );
+}
+
+function TypingText({ text }: { text: string }) {
+  const [displayedText, setDisplayedText] = useState("");
+
+  useEffect(() => {
+    setDisplayedText("");
+    let i = 0;
+    const intervalId = setInterval(() => {
+      setDisplayedText((prev) => text.slice(0, i + 1));
+      i++;
+      if (i >= text.length) clearInterval(intervalId);
+    }, 30); // 30ms per character
+
+    return () => clearInterval(intervalId);
+  }, [text]);
+
+  return (
+    <span>
+      {displayedText}
+      <motion.span
+        animate={{ opacity: [1, 0] }}
+        transition={{ duration: 0.5, repeat: Infinity, ease: "steps(2)" }}
+        className="inline-block w-1 h-6 ml-1 bg-foreground align-middle"
+      />
+    </span>
   );
 }

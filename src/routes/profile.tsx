@@ -1,15 +1,16 @@
+import { useAuth, useClerk, useUser } from "@clerk/clerk-react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useUser, useClerk, useAuth } from "@clerk/clerk-react";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   FiArrowLeft,
-  FiUser,
-  FiMail,
-  FiHash,
   FiCalendar,
+  FiCheck,
+  FiHash,
   FiLogOut,
   FiSettings,
+  FiUser,
+  FiX,
 } from "react-icons/fi";
 import { toast } from "sonner";
 
@@ -24,9 +25,12 @@ export const Route = createFileRoute("/profile")({
 });
 
 interface UserData {
+  _id: string;
   username: string;
   userId: string;
   email: string;
+  firstName: string;
+  lastName: string;
   createdEvents: unknown[];
   joinedEvents: unknown[];
   createdAt: string;
@@ -38,6 +42,10 @@ function ProfilePage() {
   const { getToken } = useAuth();
   const [dbUser, setDbUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -53,6 +61,8 @@ function ProfilePage() {
         if (!response.ok) throw new Error("Failed to fetch user data");
         const json = await response.json();
         setDbUser(json.data.user);
+        setEditFirstName(json.data.user.firstName || "");
+        setEditLastName(json.data.user.lastName || "");
       } catch (err) {
         console.error(err);
         toast.error("Could not load profile data");
@@ -63,6 +73,41 @@ function ProfilePage() {
 
     fetchUserData();
   }, [isLoaded, user, getToken]);
+
+  const handleSaveName = async () => {
+    if (!dbUser || !editFirstName.trim()) {
+      toast.error("First name is required");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const token = await getToken();
+      const response = await fetch("/api/users/me", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          firstName: editFirstName.trim(),
+          lastName: editLastName.trim(),
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update profile");
+
+      const json = await response.json();
+      setDbUser(json.data.user);
+      setIsEditingName(false);
+      toast.success("Profile updated successfully");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update profile");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (!isLoaded || loading) {
     return (
@@ -77,6 +122,10 @@ function ProfilePage() {
     toast.success("Signed out successfully");
     navigate({ to: "/" });
   };
+
+  const displayName = dbUser?.firstName
+    ? `${dbUser.firstName}${dbUser.lastName ? ` ${dbUser.lastName}` : ""}`
+    : dbUser?.username;
 
   return (
     <div className="min-h-screen bg-background pt-24 pb-12 px-6">
@@ -119,7 +168,7 @@ function ProfilePage() {
                   )}
                 </div>
                 <h2 className="text-xl font-bold tracking-tight">
-                  {dbUser?.username || user?.username}
+                  {displayName || user?.username}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   {dbUser?.email || user?.primaryEmailAddress?.emailAddress}
@@ -130,7 +179,10 @@ function ProfilePage() {
                     <FiHash className="text-muted-foreground" />
                     <span className="font-mono text-xs">{dbUser?.userId}</span>
                   </div>
-                  <button className="flex items-center justify-center gap-2 w-full p-3 rounded-2xl glass text-sm font-medium hover:bg-foreground/5 transition">
+                  <button
+                    onClick={() => setIsEditingName(!isEditingName)}
+                    className="flex items-center justify-center gap-2 w-full p-3 rounded-2xl glass text-sm font-medium hover:bg-foreground/5 transition"
+                  >
                     <FiSettings size={16} />
                     Edit Profile
                   </button>
@@ -141,6 +193,81 @@ function ProfilePage() {
 
           {/* RIGHT: CONTENT */}
           <div className="lg:col-span-2 space-y-8">
+            {/* EDIT NAME FORM */}
+            {isEditingName && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="glass rounded-3xl p-6 border-border"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold">Update Name</h3>
+                  <button
+                    onClick={() => {
+                      setIsEditingName(false);
+                      setEditFirstName(dbUser?.firstName || "");
+                      setEditLastName(dbUser?.lastName || "");
+                    }}
+                    className="p-1 hover:bg-foreground/10 rounded-lg transition"
+                  >
+                    <FiX size={20} />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground ml-1">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editFirstName}
+                      onChange={(e) => setEditFirstName(e.target.value)}
+                      placeholder="Enter your first name"
+                      disabled={isSaving}
+                      className="w-full mt-2 px-4 py-3 rounded-xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground ml-1">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editLastName}
+                      onChange={(e) => setEditLastName(e.target.value)}
+                      placeholder="Enter your last name (optional)"
+                      disabled={isSaving}
+                      className="w-full mt-2 px-4 py-3 rounded-xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleSaveName}
+                      disabled={isSaving}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-foreground text-background font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <FiCheck size={16} />
+                      {isSaving ? "Saving..." : "Save Changes"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditingName(false);
+                        setEditFirstName(dbUser?.firstName || "");
+                        setEditLastName(dbUser?.lastName || "");
+                      }}
+                      disabled={isSaving}
+                      className="flex-1 py-3 rounded-xl glass text-sm font-medium hover:bg-foreground/5 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {/* STATS */}
             <div className="grid grid-cols-2 gap-4">
               <motion.div

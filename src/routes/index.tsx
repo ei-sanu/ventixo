@@ -1,26 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PageShell } from "@/components/PageShell";
+import { HeroSection } from "@/components/HeroSection";
+import { StatsSection } from "@/components/StatsSection";
+import { SecuritySection } from "@/components/SecuritySection";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Ventixo — Seamless & secure ticketing" },
+      { name: "description", content: "Ventixo powers seamless and secure ticketing experiences from event creation to entry validation." },
+      { property: "og:title", content: "Ventixo — Seamless & secure ticketing" },
+      { property: "og:description", content: "Speed, security, and simplicity for modern event organizers." },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}
-
 function Index() {
-  return <PlaceholderIndex />;
+  return (
+    <PageShell>
+      <HeroSection />
+      <StatsSection />
+      <SecuritySection />
+    </PageShell>
+  );
 }

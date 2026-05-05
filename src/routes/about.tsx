@@ -8,7 +8,10 @@ export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
       { title: "About — Ventixo" },
-      { name: "description", content: "Ventixo is on a mission to make ticketing simple, secure, and delightful." },
+      {
+        name: "description",
+        content: "Ventixo is on a mission to make ticketing simple, secure, and delightful.",
+      },
       { property: "og:title", content: "About Ventixo" },
       { property: "og:description", content: "Our mission, vision, and what makes us different." },
     ],
@@ -17,10 +20,26 @@ export const Route = createFileRoute("/about")({
 });
 
 const values = [
-  { icon: FiTarget, title: "Simplicity first", desc: "We obsess over removing friction at every step of the journey." },
-  { icon: FiShield, title: "Security by design", desc: "Trust is a feature. We bake it into the foundation, not bolted on." },
-  { icon: FiZap, title: "Built for scale", desc: "From intimate gatherings to 100k-seat arenas — same smooth experience." },
-  { icon: FiHeart, title: "Human-centered", desc: "Every pixel and policy is shaped by the humans on both sides of the door." },
+  {
+    icon: FiTarget,
+    title: "Simplicity first",
+    desc: "We obsess over removing friction at every step of the journey.",
+  },
+  {
+    icon: FiShield,
+    title: "Security by design",
+    desc: "Trust is a feature. We bake it into the foundation, not bolted on.",
+  },
+  {
+    icon: FiZap,
+    title: "Built for scale",
+    desc: "From intimate gatherings to 100k-seat arenas — same smooth experience.",
+  },
+  {
+    icon: FiHeart,
+    title: "Human-centered",
+    desc: "Every pixel and policy is shaped by the humans on both sides of the door.",
+  },
 ];
 
 function AboutPage() {
@@ -65,8 +84,8 @@ function AboutPage() {
             <h2 className="text-2xl font-semibold">Our mission</h2>
             <p className="mt-3 text-muted-foreground">
               To make every ticket — from a local meetup to a global tour — feel effortless,
-              transparent, and trustworthy. We obsess over speed, security, and design so
-              organizers can focus on what matters: the experience.
+              transparent, and trustworthy. We obsess over speed, security, and design so organizers
+              can focus on what matters: the experience.
             </p>
           </motion.div>
           <div className="flex justify-center">

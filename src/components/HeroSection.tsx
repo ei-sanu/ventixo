@@ -61,7 +61,8 @@ export function HeroSection() {
           className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.05]"
         >
           We power <span className="text-gradient">seamless and secure</span>
-          <br />ticketing experiences
+          <br />
+          ticketing experiences
         </motion.h1>
 
         <motion.p
@@ -70,8 +71,8 @@ export function HeroSection() {
           transition={{ duration: 0.8, delay: 0.25 }}
           className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto"
         >
-          From event creation to entry validation — Ventixo handles everything with speed,
-          security, and simplicity.
+          From event creation to entry validation — Ventixo handles everything with speed, security,
+          and simplicity.
         </motion.p>
 
         <motion.div

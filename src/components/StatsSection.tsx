@@ -13,7 +13,7 @@ function Counter({ to, decimals = 0 }: { to: number; decimals?: number }) {
   const inView = useInView(ref, { once: true, margin: "-50px" });
   const mv = useMotionValue(0);
   const rounded = useTransform(mv, (v) =>
-    decimals ? v.toFixed(decimals) : Math.floor(v).toLocaleString()
+    decimals ? v.toFixed(decimals) : Math.floor(v).toLocaleString(),
   );
 
   useEffect(() => {

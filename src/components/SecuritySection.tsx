@@ -2,9 +2,21 @@ import { motion } from "framer-motion";
 import { FiLock, FiShield, FiEye } from "react-icons/fi";
 
 const items = [
-  { icon: FiLock, title: "End-to-end Encryption", desc: "Every ticket and transaction is sealed with AES-256 encryption." },
-  { icon: FiShield, title: "Secure APIs", desc: "Hardened endpoints with rate-limiting and signed requests." },
-  { icon: FiEye, title: "Privacy-first Design", desc: "We collect the minimum. You stay in control of your data." },
+  {
+    icon: FiLock,
+    title: "End-to-end Encryption",
+    desc: "Every ticket and transaction is sealed with AES-256 encryption.",
+  },
+  {
+    icon: FiShield,
+    title: "Secure APIs",
+    desc: "Hardened endpoints with rate-limiting and signed requests.",
+  },
+  {
+    icon: FiEye,
+    title: "Privacy-first Design",
+    desc: "We collect the minimum. You stay in control of your data.",
+  },
 ];
 
 export function SecuritySection() {

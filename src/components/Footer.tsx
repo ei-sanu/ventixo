@@ -10,10 +10,26 @@ export function Footer() {
           <span className="font-semibold text-lg">Ventixo</span>
         </div>
         <ul className="flex gap-6 text-sm text-muted-foreground">
-          <li><Link to="/" className="hover:text-foreground transition">Home</Link></li>
-          <li><Link to="/workflow" className="hover:text-foreground transition">Workflow</Link></li>
-          <li><Link to="/about" className="hover:text-foreground transition">About</Link></li>
-          <li><Link to="/contact" className="hover:text-foreground transition">Contact</Link></li>
+          <li>
+            <Link to="/" className="hover:text-foreground transition">
+              Home
+            </Link>
+          </li>
+          <li>
+            <Link to="/workflow" className="hover:text-foreground transition">
+              Workflow
+            </Link>
+          </li>
+          <li>
+            <Link to="/about" className="hover:text-foreground transition">
+              About
+            </Link>
+          </li>
+          <li>
+            <Link to="/contact" className="hover:text-foreground transition">
+              Contact
+            </Link>
+          </li>
         </ul>
         <div className="flex gap-3 text-muted-foreground">
           {[FaTwitter, FaGithub, FaLinkedin, FaInstagram].map((Icon, i) => (

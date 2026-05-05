@@ -52,7 +52,8 @@ export function ThreeOrb({ className, size = 420 }: Props) {
     scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 
     let id = 0;
-    let mx = 0, my = 0;
+    let mx = 0,
+      my = 0;
     const onMove = (e: MouseEvent) => {
       mx = (e.clientX / window.innerWidth - 0.5) * 0.6;
       my = (e.clientY / window.innerHeight - 0.5) * 0.6;

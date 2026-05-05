@@ -8,9 +8,16 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Ventixo — Seamless & secure ticketing" },
-      { name: "description", content: "Ventixo powers seamless and secure ticketing experiences from event creation to entry validation." },
+      {
+        name: "description",
+        content:
+          "Ventixo powers seamless and secure ticketing experiences from event creation to entry validation.",
+      },
       { property: "og:title", content: "Ventixo — Seamless & secure ticketing" },
-      { property: "og:description", content: "Speed, security, and simplicity for modern event organizers." },
+      {
+        property: "og:description",
+        content: "Speed, security, and simplicity for modern event organizers.",
+      },
     ],
   }),
   component: Index,

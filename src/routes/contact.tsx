@@ -103,7 +103,13 @@ function ContactPage() {
               type="submit"
               className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-foreground text-background font-medium hover:scale-[1.01] hover:shadow-glow transition"
             >
-              {sent ? (<><FiCheck /> Message sent</>) : "Send message"}
+              {sent ? (
+                <>
+                  <FiCheck /> Message sent
+                </>
+              ) : (
+                "Send message"
+              )}
             </button>
           </motion.form>
         </section>

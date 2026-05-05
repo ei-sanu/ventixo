@@ -9,20 +9,46 @@ export const Route = createFileRoute("/workflow")({
   head: () => ({
     meta: [
       { title: "Workflow — Ventixo" },
-      { name: "description", content: "How Ventixo handles every step from event creation to entry validation." },
+      {
+        name: "description",
+        content: "How Ventixo handles every step from event creation to entry validation.",
+      },
       { property: "og:title", content: "Ventixo Workflow" },
-      { property: "og:description", content: "Event creation, booking, payment, ticket generation, validation." },
+      {
+        property: "og:description",
+        content: "Event creation, booking, payment, ticket generation, validation.",
+      },
     ],
   }),
   component: WorkflowPage,
 });
 
 const steps = [
-  { icon: FiCalendar, title: "Event Creation", desc: "Organizers spin up an event in minutes with smart templates and dynamic pricing." },
-  { icon: FiShoppingCart, title: "Ticket Booking", desc: "Attendees discover and book tickets through a buttery-smooth, mobile-first flow." },
-  { icon: FiLock, title: "Secure Payment", desc: "PCI-DSS compliant checkout with end-to-end encryption and fraud detection." },
-  { icon: FiTag, title: "Ticket Generation", desc: "Beautiful QR-coded digital tickets delivered instantly to wallet & email." },
-  { icon: FiCheckCircle, title: "Entry Validation", desc: "Lightning-fast scan with offline fallback. Zero queues, zero stress." },
+  {
+    icon: FiCalendar,
+    title: "Event Creation",
+    desc: "Organizers spin up an event in minutes with smart templates and dynamic pricing.",
+  },
+  {
+    icon: FiShoppingCart,
+    title: "Ticket Booking",
+    desc: "Attendees discover and book tickets through a buttery-smooth, mobile-first flow.",
+  },
+  {
+    icon: FiLock,
+    title: "Secure Payment",
+    desc: "PCI-DSS compliant checkout with end-to-end encryption and fraud detection.",
+  },
+  {
+    icon: FiTag,
+    title: "Ticket Generation",
+    desc: "Beautiful QR-coded digital tickets delivered instantly to wallet & email.",
+  },
+  {
+    icon: FiCheckCircle,
+    title: "Entry Validation",
+    desc: "Lightning-fast scan with offline fallback. Zero queues, zero stress.",
+  },
 ];
 
 function WorkflowPage() {

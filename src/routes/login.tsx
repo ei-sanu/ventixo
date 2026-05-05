@@ -31,8 +31,13 @@ function LoginPage() {
       {/* LEFT */}
       <div className="relative hidden lg:flex flex-col justify-between p-10 overflow-hidden gradient-soft">
         <div className="absolute inset-0 grid-bg grid-bg-fade opacity-70" />
-        <div className="absolute inset-0 pointer-events-none"
-          style={{ background: "radial-gradient(ellipse at 30% 30%, oklch(0.8 0.1 280 / 0.35), transparent 60%)" }} />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse at 30% 30%, oklch(0.8 0.1 280 / 0.35), transparent 60%)",
+          }}
+        />
 
         <Link to="/" className="relative flex items-center gap-2 z-10 w-fit">
           <FiArrowLeft className="text-muted-foreground" />
@@ -169,7 +174,10 @@ function SocialBtn({ icon, label }: { icon: React.ReactNode; label: string }) {
   );
 }
 
-function Input({ icon, ...props }: { icon: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) {
+function Input({
+  icon,
+  ...props
+}: { icon: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="relative">
       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</span>

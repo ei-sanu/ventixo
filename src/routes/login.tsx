@@ -1,15 +1,17 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
-import { FcGoogle } from "react-icons/fc";
-import { FaGithub } from "react-icons/fa";
-import { FiMail, FiLock, FiUser, FiArrowLeft } from "react-icons/fi";
 import { ThreeOrb } from "@/components/ThreeOrb";
+import { isClerkConfigured } from "@/lib/clerk";
+import { SignedIn, SignedOut, useSignIn, useSignUp } from "@clerk/clerk-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { FcGoogle } from "react-icons/fc";
+import { FiArrowLeft, FiArrowRight, FiCheckCircle, FiLock, FiMail, FiUser } from "react-icons/fi";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Sign in — Ventixo" },
+      { title: "Authentication — Ventixo" },
       { name: "description", content: "Sign in to your Ventixo account." },
     ],
   }),
@@ -18,13 +20,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [loading, setLoading] = useState(false);
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setTimeout(() => setLoading(false), 1200);
-  };
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
@@ -90,7 +86,7 @@ function LoginPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative w-full max-w-md glass rounded-3xl p-8 shadow-card"
+          className="relative w-full max-w-md glass rounded-3xl p-8 shadow-card overflow-hidden"
         >
           <Link to="/" className="lg:hidden flex items-center gap-2 mb-6">
             <div className="h-7 w-7 rounded-lg gradient-accent" />
@@ -105,55 +101,65 @@ function LoginPage() {
               exit={{ opacity: 0, x: -12 }}
               transition={{ duration: 0.25 }}
             >
-              <h1 className="text-2xl font-semibold tracking-tight">
-                {mode === "signin" ? "Sign in to Ventixo" : "Create your account"}
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {mode === "signin"
-                  ? "Welcome back. Please enter your details."
-                  : "Start powering your events in minutes."}
-              </p>
+              <SignedOut>
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  {mode === "signin" ? "Welcome back" : "Create an account"}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {mode === "signin"
+                    ? "Enter your details to access your account."
+                    : "Start powering your events in minutes."}
+                </p>
 
-              <div className="mt-6 space-y-2">
-                <SocialBtn icon={<FcGoogle size={18} />} label="Continue with Google" />
-                <SocialBtn icon={<FaGithub size={16} />} label="Continue with GitHub" />
-              </div>
+                <div className="mt-8">
+                  <CustomAuthPanel mode={mode} setMode={setMode} />
+                </div>
+              </SignedOut>
 
-              <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-                <div className="h-px flex-1 bg-border" />
-                or
-                <div className="h-px flex-1 bg-border" />
-              </div>
+              <SignedIn>
+                <div className="flex flex-col items-center text-center py-4">
+                  <div className="h-16 w-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-4">
+                    <FiCheckCircle className="text-emerald-500" size={32} />
+                  </div>
+                  <h1 className="text-2xl font-semibold tracking-tight">You're signed in</h1>
+                  <p className="text-sm text-muted-foreground mt-1 mb-8">
+                    Welcome back to the Ventixo dashboard.
+                  </p>
 
-              <form onSubmit={submit} className="space-y-3">
-                {mode === "signup" && (
-                  <Input icon={<FiUser />} placeholder="Full name" type="text" />
-                )}
-                <Input icon={<FiMail />} placeholder="Email address" type="email" />
-                <Input icon={<FiLock />} placeholder="Password" type="password" />
+                  <div className="grid gap-3 w-full">
+                    <button
+                      onClick={() => navigate({ to: "/profile" })}
+                      className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl bg-foreground text-background text-sm font-medium hover:opacity-90 transition shadow-card"
+                    >
+                      View Profile
+                      <FiArrowRight size={16} />
+                    </button>
+                    <Link
+                      to="/"
+                      className="flex items-center justify-center w-full px-4 py-3 rounded-xl glass text-sm font-medium hover:bg-foreground/5 transition"
+                    >
+                      Back to Home
+                    </Link>
+                  </div>
+                </div>
+              </SignedIn>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full mt-2 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-foreground text-background font-medium hover:scale-[1.01] hover:shadow-glow transition disabled:opacity-70"
+              <p className="mt-8 text-[11px] text-center text-muted-foreground leading-relaxed px-4">
+                By continuing, you agree to our{" "}
+                <Link
+                  to="/terms"
+                  className="text-foreground hover:underline underline-offset-2 transition-all"
                 >
-                  {loading ? (
-                    <span className="h-4 w-4 border-2 border-background/40 border-t-background rounded-full animate-spin" />
-                  ) : (
-                    "Continue"
-                  )}
-                </button>
-              </form>
-
-              <p className="mt-6 text-sm text-center text-muted-foreground">
-                {mode === "signin" ? "Don't have an account? " : "Already have one? "}
-                <button
-                  onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-                  className="text-foreground font-medium relative group"
+                  Terms
+                </Link>{" "}
+                and{" "}
+                <Link
+                  to="/privacy"
+                  className="text-foreground hover:underline underline-offset-2 transition-all"
                 >
-                  {mode === "signin" ? "Sign up" : "Sign in"}
-                  <span className="absolute left-0 -bottom-0.5 w-full h-px bg-foreground scale-x-0 group-hover:scale-x-100 origin-left transition-transform" />
-                </button>
+                  Privacy
+                </Link>
+                .
               </p>
             </motion.div>
           </AnimatePresence>
@@ -163,29 +169,261 @@ function LoginPage() {
   );
 }
 
-function SocialBtn({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <button
-      type="button"
-      className="w-full inline-flex items-center justify-center gap-3 px-4 py-3 rounded-2xl border border-border bg-background/60 hover:bg-background hover:scale-[1.01] hover:shadow-soft transition text-sm font-medium"
-    >
-      {icon} {label}
-    </button>
-  );
-}
+function CustomAuthPanel({
+  mode,
+  setMode,
+}: {
+  mode: "signin" | "signup";
+  setMode: (m: "signin" | "signup") => void;
+}) {
+  const { signIn, isLoaded: signInLoaded, setActive: setSignInActive } = useSignIn();
+  const { signUp, isLoaded: signUpLoaded, setActive: setSignUpActive } = useSignUp();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
 
-function Input({
-  icon,
-  ...props
-}: { icon: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) {
+  useEffect(() => {
+    setShowVerification(false);
+    setVerificationCode("");
+    setLoading(false);
+    setSubmitting(false);
+  }, [mode]);
+
+  if (!isClerkConfigured) {
+    return (
+      <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-foreground">
+        Authentication is currently unavailable.
+      </div>
+    );
+  }
+
+  const handleOAuth = async (strategy: "oauth_google") => {
+    const authLoaded = mode === "signin" ? signInLoaded : signUpLoaded;
+    if (!authLoaded || loading || submitting) return;
+
+    setSubmitting(true);
+    try {
+      await (mode === "signin" ? signIn : signUp).authenticateWithRedirect({
+        strategy,
+        redirectUrl: "/login",
+        redirectUrlComplete: "/",
+      });
+    } catch (err: unknown) {
+      const error = err as { errors?: { message: string }[] };
+      toast.error(error.errors?.[0]?.message || "Something went wrong");
+      setSubmitting(false);
+    }
+  };
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const authLoaded = mode === "signin" ? signInLoaded : signUpLoaded;
+    if (!authLoaded || loading || submitting) return;
+
+    setLoading(true);
+    setSubmitting(true);
+
+    try {
+      if (mode === "signin") {
+        const result = await signIn.create({
+          identifier: email,
+          password,
+        });
+        if (result.status === "complete") {
+          await setSignInActive({ session: result.createdSessionId });
+          toast.success("Welcome back!");
+          navigate({ to: "/" });
+        }
+      } else {
+        await signUp.create({
+          emailAddress: email,
+          password,
+          username: username || undefined,
+        });
+        await signUp.prepareEmailAddressVerification();
+        setShowVerification(true);
+        toast.success("Verification code sent to your email");
+        setSubmitting(false);
+      }
+    } catch (err: unknown) {
+      const error = err as { errors?: { message: string }[] };
+      const errorMsg = error.errors?.[0]?.message || "Authentication failed";
+      toast.error(errorMsg);
+      setSubmitting(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signUpLoaded || loading || submitting) return;
+
+    setLoading(true);
+    setSubmitting(true);
+
+    try {
+      const result = await signUp.attemptEmailAddressVerification({
+        code: verificationCode,
+      });
+      if (result.status === "complete") {
+        await setSignUpActive({ session: result.createdSessionId });
+        toast.success("Account created successfully!");
+        navigate({ to: "/" });
+      }
+    } catch (err: unknown) {
+      const error = err as { errors?: { message: string }[] };
+      const errorMsg = error.errors?.[0]?.message || "Verification failed";
+      toast.error(errorMsg);
+      setSubmitting(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isFormDisabled = loading || submitting;
+
+  if (showVerification) {
+    return (
+      <form onSubmit={handleVerify} className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-muted-foreground ml-1">
+            Verification Code
+          </label>
+          <div className="relative">
+            <FiLock
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+              size={16}
+            />
+            <input
+              type="text"
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value)}
+              placeholder="Enter 6-digit code"
+              disabled={isFormDisabled}
+              className="w-full pl-11 pr-4 py-3 rounded-xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              required
+            />
+          </div>
+        </div>
+        <button
+          type="submit"
+          disabled={isFormDisabled}
+          className="w-full py-3 rounded-xl bg-foreground text-background font-medium hover:opacity-90 transition shadow-card disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? "Verifying..." : "Verify Email"}
+        </button>
+      </form>
+    );
+  }
+
   return (
-    <div className="relative">
-      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</span>
-      <input
-        required
-        {...props}
-        className="w-full pl-11 pr-4 py-3 rounded-2xl bg-background/60 border border-border focus:border-foreground focus:ring-4 focus:ring-foreground/5 outline-none transition text-sm"
-      />
+    <div className="space-y-6">
+      <button
+        type="button"
+        onClick={() => handleOAuth("oauth_google")}
+        disabled={isFormDisabled}
+        className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-border bg-background hover:bg-foreground/5 transition font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <FcGoogle size={20} />
+        Continue with Google
+      </button>
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-transparent px-2 text-muted-foreground">Or email</span>
+        </div>
+      </div>
+
+      <form onSubmit={handleEmailAuth} className="space-y-4">
+        {mode === "signup" && (
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground ml-1">Username</label>
+            <div className="relative">
+              <FiUser
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+                size={16}
+              />
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="johndoe"
+                disabled={isFormDisabled}
+                className="w-full pl-11 pr-4 py-3 rounded-xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                required={mode === "signup"}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-muted-foreground ml-1">Email Address</label>
+          <div className="relative">
+            <FiMail
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+              size={16}
+            />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
+              disabled={isFormDisabled}
+              className="w-full pl-11 pr-4 py-3 rounded-xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              required
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-muted-foreground ml-1">Password</label>
+          <div className="relative">
+            <FiLock
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+              size={16}
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              disabled={isFormDisabled}
+              className="w-full pl-11 pr-4 py-3 rounded-xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              required
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={isFormDisabled}
+          className="w-full py-3 rounded-xl bg-foreground text-background font-medium hover:opacity-90 transition shadow-card disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? "Please wait..." : mode === "signin" ? "Sign In" : "Create Account"}
+        </button>
+      </form>
+
+      <div className="text-center">
+        <button
+          type="button"
+          onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+          disabled={isFormDisabled}
+          className="text-sm text-muted-foreground hover:text-foreground transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {mode === "signin"
+            ? "Don't have an account? Sign up"
+            : "Already have an account? Sign in"}
+        </button>
+      </div>
     </div>
   );
 }

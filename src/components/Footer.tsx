@@ -30,6 +30,16 @@ export function Footer() {
               Contact
             </Link>
           </li>
+          <li>
+            <Link to="/terms" className="hover:text-foreground transition">
+              Terms
+            </Link>
+          </li>
+          <li>
+            <Link to="/privacy" className="hover:text-foreground transition">
+              Privacy
+            </Link>
+          </li>
         </ul>
         <div className="flex gap-3 text-muted-foreground">
           {[FaTwitter, FaGithub, FaLinkedin, FaInstagram].map((Icon, i) => (

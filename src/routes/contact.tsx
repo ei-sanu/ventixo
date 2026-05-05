@@ -45,9 +45,12 @@ function ContactPage() {
 
             <div className="mt-10 space-y-4">
               {[
-                { icon: FiMail, label: "hello@ventixo.com" },
-                { icon: FiPhone, label: "+1 (555) 010-2026" },
-                { icon: FiMapPin, label: "Brooklyn, NY" },
+                { icon: FiMail, label: "cyberarcnova@gmail.com" },
+                { icon: FiPhone, label: "+91 9124953636" },
+                {
+                  icon: FiMapPin,
+                  label: "Lovely Professional University, Phagwara - 144411, Punjab ",
+                },
               ].map((c, i) => (
                 <motion.div
                   key={i}
@@ -88,8 +91,8 @@ function ContactPage() {
             }}
             className="glass rounded-3xl p-8 shadow-card space-y-5"
           >
-            <Field label="Name" type="text" placeholder="Jane Doe" />
-            <Field label="Email" type="email" placeholder="jane@company.com" />
+            <Field label="Name" type="text" placeholder="Your Name" />
+            <Field label="Email" type="email" placeholder="yourname@gmail.com" />
             <div>
               <label className="text-sm font-medium">Message</label>
               <textarea

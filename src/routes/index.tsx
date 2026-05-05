@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/PageShell";
 import { HeroSection } from "@/components/HeroSection";
+import { ShowcaseSection } from "@/components/ShowcaseSection";
 import { StatsSection } from "@/components/StatsSection";
 import { SecuritySection } from "@/components/SecuritySection";
 
@@ -27,6 +28,7 @@ function Index() {
   return (
     <PageShell>
       <HeroSection />
+      <ShowcaseSection />
       <StatsSection />
       <SecuritySection />
     </PageShell>

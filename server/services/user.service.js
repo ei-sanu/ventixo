@@ -1,10 +1,16 @@
 import { clerkClient } from "@clerk/express";
 import User from "../models/User.js";
+import { env } from "../config/env.js";
 import { ApiError } from "../utils/ApiError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 import { generateUserId } from "../utils/generateUserId.js";
 
 const DEFAULT_USERNAME = "ventixo_user";
+
+const isAdmin = (email) => {
+  if (!email) return false;
+  return env.adminEmails.some((adminEmail) => adminEmail.toLowerCase() === email.toLowerCase());
+};
 
 const normalizeUsername = (value) => {
   if (!value) return "";
@@ -68,10 +74,13 @@ export const syncUser = async ({ clerkId, username: providedUsername }) => {
     throw new ApiError(422, "A verified email address is required to create a profile");
   }
 
+  console.log(`[Sync] Syncing user: ${email}, isAdmin: ${isAdmin(email)}, adminEmails: ${env.adminEmails}`);
+
   const existingUser = await User.findOne({ clerkId });
 
   if (existingUser) {
     existingUser.email = email;
+    existingUser.role = isAdmin(email) ? "admin" : existingUser.role;
 
     const requestedUsername = normalizeUsername(providedUsername);
     if (requestedUsername && requestedUsername !== existingUser.username) {
@@ -97,6 +106,7 @@ export const syncUser = async ({ clerkId, username: providedUsername }) => {
         username,
         userId,
         email,
+        role: isAdmin(email) ? "admin" : "user",
       });
 
       return { user, created: true };
@@ -113,6 +123,7 @@ export const syncUser = async ({ clerkId, username: providedUsername }) => {
           username: resolvedUsername,
           userId,
           email,
+          role: isAdmin(email) ? "admin" : "user",
         });
 
         return { user, created: true };
@@ -127,7 +138,7 @@ export const syncUser = async ({ clerkId, username: providedUsername }) => {
 
 export const getUserProfile = async (userId) => {
   const user = await User.findById(userId)
-    .select("username userId email firstName lastName createdEvents joinedEvents createdAt")
+    .select("username userId email firstName lastName role createdEvents joinedEvents createdAt")
     .populate({
       path: "createdEvents",
       select: "title category teamType status isPublished date location createdAt",
@@ -154,7 +165,7 @@ export const updateUserProfile = async (userId, { firstName, lastName }) => {
       },
     },
     { new: true },
-  ).select("username userId email firstName lastName createdEvents joinedEvents createdAt");
+  ).select("username userId email firstName lastName role createdEvents joinedEvents createdAt");
 
   if (!user) {
     throw new ApiError(404, "User not found");

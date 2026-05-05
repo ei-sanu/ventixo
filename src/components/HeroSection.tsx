@@ -14,8 +14,10 @@ const floats = [
   { icon: FiTrendingUp, label: "+24% sales", className: "bottom-[18%] right-[6%]", delay: 0.8 },
 ];
 
+import { useAuthModal } from "@/hooks/use-auth-modal";
+
 export function HeroSection() {
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const { openAuthModal } = useAuthModal();
 
   return (
     <>
@@ -46,7 +48,7 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.1 }}
-              className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.05]"
+              className="text-4xl md:text-7xl font-bold tracking-tight leading-[1.05]"
             >
               We power <span className="text-gradient">seamless and secure</span>
               <br />
@@ -57,7 +59,7 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.25 }}
-              className="mt-6 text-lg text-muted-foreground max-w-xl"
+              className="mt-6 text-base md:text-lg text-muted-foreground max-w-xl"
             >
               From event creation to entry validation — Ventixo handles everything with speed,
               security, and simplicity.
@@ -71,7 +73,7 @@ export function HeroSection() {
             >
               <SignedOut>
                 <button
-                  onClick={() => setIsAuthModalOpen(true)}
+                  onClick={() => openAuthModal("signup")}
                   className="group inline-flex items-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-medium shadow-card hover:scale-[1.03] transition"
                 >
                   Get Started
@@ -99,7 +101,7 @@ export function HeroSection() {
           </div>
 
           {/* RIGHT: ANIMATED SPHERE */}
-          <div className="relative flex justify-center lg:justify-end">
+          <div className="relative flex justify-center lg:justify-end overflow-hidden lg:overflow-visible mt-12 lg:mt-0">
             {/* Floating cards */}
             {floats.map((f, i) => (
               <motion.div
@@ -124,16 +126,16 @@ export function HeroSection() {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1, delay: 0.2 }}
-              className="relative"
+              className="relative w-[280px] h-[280px] md:w-[450px] md:h-[450px] lg:w-[550px] lg:h-[550px] flex items-center justify-center mx-auto lg:mx-0"
             >
-              <ThreeOrb size={450} />
-              <div className="absolute inset-0 rounded-full shadow-glow pointer-events-none" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <ThreeOrb className="w-full h-full" />
+              </div>
+              <div className="absolute inset-6 rounded-full shadow-glow pointer-events-none" />
             </motion.div>
           </div>
         </div>
       </section>
-
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </>
   );
 }

@@ -34,9 +34,9 @@ export function StatsSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: i * 0.1 }}
-            className="glass rounded-3xl p-8 shadow-card text-center hover:scale-[1.02] transition"
+            className="glass rounded-3xl p-4 sm:p-8 shadow-card text-center hover:scale-[1.02] transition"
           >
-            <div className="text-4xl md:text-5xl font-bold tracking-tight text-gradient">
+            <div className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight text-gradient">
               <Counter to={s.value} decimals={s.decimals} />
               {s.suffix}
             </div>

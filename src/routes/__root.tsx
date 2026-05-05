@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { clerkPublishableKey, isClerkConfigured } from "@/lib/clerk";
 import appCss from "../styles.css?url";
+import { Logo } from "@/components/Logo";
 
 function LoadingScreen() {
   return (
@@ -112,6 +113,10 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+import { AuthModalProvider } from "@/hooks/use-auth-modal";
+import { AuthModalManager } from "@/components/AuthModalManager";
+import { DbUserProvider } from "@/hooks/use-db-user";
+
 function RootComponent() {
   const [isAppLoaded, setIsAppLoaded] = useState(false);
 
@@ -134,13 +139,18 @@ function RootComponent() {
   return (
     <ClerkProvider
       publishableKey={clerkPublishableKey}
-      afterSignOutUrl="/login"
+      afterSignOutUrl="/"
       signInFallbackRedirectUrl="/profile"
       signUpFallbackRedirectUrl="/profile"
     >
-      <ClerkWrapper isAppLoaded={isAppLoaded} setIsAppLoaded={setIsAppLoaded}>
-        <Outlet />
-      </ClerkWrapper>
+      <AuthModalProvider>
+        <ClerkWrapper isAppLoaded={isAppLoaded} setIsAppLoaded={setIsAppLoaded}>
+          <DbUserProvider>
+            <Outlet />
+            <AuthModalManager />
+          </DbUserProvider>
+        </ClerkWrapper>
+      </AuthModalProvider>
     </ClerkProvider>
   );
 }
@@ -149,7 +159,7 @@ function ClerkSetupScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-6">
       <div className="max-w-xl w-full glass rounded-3xl p-8 shadow-card border-border">
-        <div className="h-12 w-12 rounded-xl gradient-accent shadow-glow mb-6" />
+        <Logo size="lg" className="mb-6" />
         <h1 className="text-2xl font-semibold tracking-tight">Clerk is not configured</h1>
         <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
           Add a valid VITE_CLERK_PUBLISHABLE_KEY to the frontend environment, then restart the dev
@@ -224,6 +234,10 @@ function ClerkWrapper({
 
         if (!controller.signal.aborted) {
           syncedUserIdRef.current = user.id;
+          // Refresh DB user state after sync
+          if ((window as any).refreshDbUser) {
+            (window as any).refreshDbUser();
+          }
         }
       } catch (error) {
         if (error instanceof Error && error.name !== "AbortError") {

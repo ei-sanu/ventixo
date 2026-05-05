@@ -1,25 +1,35 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 
 interface Props {
   className?: string;
-  size?: number;
+  size?: number; // Optional fallback size
 }
 
-export function ThreeOrb({ className, size = 420 }: Props) {
+export function ThreeOrb({ className, size: initialSize }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
     const mount = ref.current;
     if (!mount) return;
 
+    // Use container size if size prop is not provided
+    const width = initialSize || mount.clientWidth || 420;
+    const height = initialSize || mount.clientHeight || 420;
+
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
     camera.position.z = 3.2;
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(size, size);
+    renderer.setSize(width, height);
     mount.appendChild(renderer.domElement);
 
     const geo = new THREE.IcosahedronGeometry(1.1, 4);
@@ -71,17 +81,39 @@ export function ThreeOrb({ className, size = 420 }: Props) {
     };
     animate();
 
+    const handleResize = () => {
+      if (!mount) return;
+      const w = initialSize || mount.clientWidth;
+      const h = initialSize || mount.clientHeight;
+      renderer.setSize(w, h);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    };
+    window.addEventListener("resize", handleResize);
+
     return () => {
       cancelAnimationFrame(id);
       window.removeEventListener("mousemove", onMove);
-      mount.removeChild(renderer.domElement);
+      window.removeEventListener("resize", handleResize);
+      if (mount.contains(renderer.domElement)) {
+        mount.removeChild(renderer.domElement);
+      }
       renderer.dispose();
       geo.dispose();
       mat.dispose();
       innerGeo.dispose();
       innerMat.dispose();
     };
-  }, [size]);
+  }, [isClient, initialSize]);
 
-  return <div ref={ref} className={className} style={{ width: size, height: size }} />;
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        width: initialSize ? `${initialSize}px` : "100%",
+        height: initialSize ? `${initialSize}px` : "100%",
+      }}
+    />
+  );
 }

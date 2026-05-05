@@ -1,15 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { FaGithub, FaTwitter, FaLinkedin, FaInstagram } from "react-icons/fa";
+import { Logo } from "./Logo";
 
 export function Footer() {
   return (
     <footer className="border-t border-border mt-32">
-      <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-10 md:gap-6">
         <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-lg gradient-accent" />
+          <Logo size="sm" />
           <span className="font-semibold text-lg">Ventixo</span>
         </div>
-        <ul className="flex gap-6 text-sm text-muted-foreground">
+        <ul className="flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm text-muted-foreground">
           <li>
             <Link to="/" className="hover:text-foreground transition">
               Home

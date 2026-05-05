@@ -1,6 +1,7 @@
 import Event from "../models/Event.js";
 import User from "../models/User.js";
 import { ApiError } from "../utils/ApiError.js";
+import { generateTicket } from "./ticket.service.js";
 
 export const createEvent = async ({ organizer, payload }) => {
   const event = await Event.create({
@@ -73,6 +74,8 @@ export const joinEvent = async ({ eventId, user }) => {
   await User.findByIdAndUpdate(user._id, {
     $addToSet: { joinedEvents: event._id },
   });
+
+  await generateTicket({ eventId: event._id, userId: user._id });
 
   return updatedEvent;
 };

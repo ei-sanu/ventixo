@@ -66,6 +66,7 @@ const startServer = async () => {
 
   app.listen(env.port, () => {
     logger.info(`Ventixo API running on port ${env.port}`);
+    console.log(`[Server] Routes initialized. Environment: ${env.nodeEnv}, Port: ${env.port}`);
   });
 };
 

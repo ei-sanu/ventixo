@@ -47,8 +47,13 @@ export const joinCurrentUserToEvent = asyncHandler(async (req, res) => {
   });
 });
 
-export const getOngoingPublishedEvents = asyncHandler(async (_req, res) => {
-  const events = await getOngoingEvents();
+export const getPublicEvents = asyncHandler(async (_req, res) => {
+  const events = await Event.find({
+    status: "approved",
+    isPublished: true,
+  })
+    .populate("organizer", "username firstName lastName")
+    .sort({ date: 1, createdAt: -1 });
 
   return res.status(200).json({
     success: true,

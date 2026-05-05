@@ -1,5 +1,5 @@
 import { useAuth } from "@clerk/clerk-react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { 
@@ -13,7 +13,9 @@ import {
   FiArrowLeft,
   FiMail,
   FiHash,
-  FiShield
+  FiShield,
+  FiUser,
+  FiMapPin
 } from "react-icons/fi";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -29,6 +31,7 @@ interface Event {
   category: string;
   status: "pending" | "approved" | "rejected";
   date: string;
+  location: string;
   organizer: {
     username: string;
     email: string;
@@ -43,6 +46,8 @@ interface User {
   email: string;
   role: string;
   createdAt: string;
+  createdCount: number;
+  joinedCount: number;
 }
 
 function AdminPanel() {
@@ -140,23 +145,32 @@ function AdminPanel() {
             </p>
           </div>
 
-          <div className="flex bg-foreground/5 p-1 rounded-2xl w-fit self-start md:self-center">
-            <button
-              onClick={() => setTab("events")}
-              className={`px-6 py-2.5 rounded-xl text-sm font-medium transition ${
-                tab === "events" ? "bg-background shadow-soft text-foreground" : "text-muted-foreground hover:text-foreground"
-              }`}
+          <div className="flex flex-wrap items-center gap-3 self-start md:self-center">
+            <Link
+              to="/profile"
+              className="flex items-center gap-2 px-6 py-3 rounded-2xl glass border-border font-bold hover:bg-foreground/5 transition"
             >
-              Event Requests
-            </button>
-            <button
-              onClick={() => setTab("users")}
-              className={`px-6 py-2.5 rounded-xl text-sm font-medium transition ${
-                tab === "users" ? "bg-background shadow-soft text-foreground" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              User Directory
-            </button>
+              <FiUser />
+              Profile
+            </Link>
+            <div className="flex bg-foreground/5 p-1 rounded-2xl">
+              <button
+                onClick={() => setTab("events")}
+                className={`px-6 py-2.5 rounded-xl text-sm font-medium transition ${
+                  tab === "events" ? "bg-background shadow-soft text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Event Requests
+              </button>
+              <button
+                onClick={() => setTab("users")}
+                className={`px-6 py-2.5 rounded-xl text-sm font-medium transition ${
+                  tab === "users" ? "bg-background shadow-soft text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                User Directory
+              </button>
+            </div>
           </div>
         </div>
 
@@ -212,6 +226,14 @@ function AdminPanel() {
                           <FiUsers className="shrink-0" />
                           <span>{event.participants.length} joined</span>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <FiMapPin className="shrink-0" />
+                          <span>{event.location}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] bg-foreground/5 px-2 py-0.5 rounded-full">
+                          <FiMail className="shrink-0" />
+                          <span>{event.organizer.email}</span>
+                        </div>
                       </div>
                     </div>
 
@@ -251,6 +273,7 @@ function AdminPanel() {
                     <tr className="bg-foreground/5 text-muted-foreground text-[10px] uppercase tracking-widest font-bold">
                       <th className="px-8 py-5">User</th>
                       <th className="px-8 py-5">ID</th>
+                      <th className="px-8 py-5">Activity</th>
                       <th className="px-8 py-5">Role</th>
                       <th className="px-8 py-5 text-right">Joined At</th>
                     </tr>
@@ -268,6 +291,16 @@ function AdminPanel() {
                           </div>
                         </td>
                         <td className="px-8 py-5 font-mono text-xs">{user.userId}</td>
+                        <td className="px-8 py-5">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
+                              {user.createdCount} Created
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
+                              {user.joinedCount} Joined
+                            </span>
+                          </div>
+                        </td>
                         <td className="px-8 py-5">
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             user.role === "admin" ? "bg-blue-500/10 text-blue-500" : "bg-foreground/5 text-muted-foreground"

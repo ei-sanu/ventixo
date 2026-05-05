@@ -1,18 +1,29 @@
 import { useAuth, useClerk, useUser } from "@clerk/clerk-react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import {
+  FiActivity,
   FiArrowLeft,
   FiCalendar,
   FiCheck,
+  FiExternalLink,
   FiHash,
   FiLogOut,
+  FiMapPin,
   FiSettings,
   FiUser,
   FiX,
+  FiPlus,
+  FiShield,
+  FiMail,
+  FiAward,
+  FiBriefcase,
+  FiUsers
 } from "react-icons/fi";
+import { format } from "date-fns";
 import { toast } from "sonner";
+import { PageShell } from "@/components/PageShell";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -24,6 +35,19 @@ export const Route = createFileRoute("/profile")({
   component: ProfilePage,
 });
 
+interface Ticket {
+  _id: string;
+  ticketCode: string;
+  status: string;
+  event: {
+    _id: string;
+    title: string;
+    date: string;
+    location: string;
+    category: string;
+  };
+}
+
 interface UserData {
   _id: string;
   username: string;
@@ -31,8 +55,9 @@ interface UserData {
   email: string;
   firstName: string;
   lastName: string;
-  createdEvents: unknown[];
-  joinedEvents: unknown[];
+  role: string;
+  createdEvents: any[];
+  joinedEvents: any[];
   createdAt: string;
 }
 
@@ -41,6 +66,7 @@ function ProfilePage() {
   const { signOut } = useClerk();
   const { getToken } = useAuth();
   const [dbUser, setDbUser] = useState<UserData | null>(null);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editFirstName, setEditFirstName] = useState("");
@@ -53,16 +79,20 @@ function ProfilePage() {
       if (!isLoaded || !user) return;
       try {
         const token = await getToken();
-        const response = await fetch("/api/users/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!response.ok) throw new Error("Failed to fetch user data");
-        const json = await response.json();
-        setDbUser(json.data.user);
-        setEditFirstName(json.data.user.firstName || "");
-        setEditLastName(json.data.user.lastName || "");
+        const [userRes, ticketsRes] = await Promise.all([
+          fetch("/api/users/me", { headers: { Authorization: `Bearer ${token}` } }),
+          fetch("/api/tickets/my-tickets", { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+
+        if (!userRes.ok || !ticketsRes.ok) throw new Error("Failed to fetch data");
+
+        const userJson = await userRes.json();
+        const ticketsJson = await ticketsRes.json();
+
+        setDbUser(userJson.data.user);
+        setTickets(ticketsJson.data.tickets);
+        setEditFirstName(userJson.data.user.firstName || "");
+        setEditLastName(userJson.data.user.lastName || "");
       } catch (err) {
         console.error(err);
         toast.error("Could not load profile data");
@@ -109,6 +139,12 @@ function ProfilePage() {
     }
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Signed out successfully");
+    navigate({ to: "/" });
+  };
+
   if (!isLoaded || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -117,222 +153,306 @@ function ProfilePage() {
     );
   }
 
-  const handleSignOut = async () => {
-    await signOut();
-    toast.success("Signed out successfully");
-    navigate({ to: "/" });
-  };
-
   const displayName = dbUser?.firstName
     ? `${dbUser.firstName}${dbUser.lastName ? ` ${dbUser.lastName}` : ""}`
     : dbUser?.username;
 
   return (
-    <div className="min-h-screen bg-background pt-24 pb-12 px-6">
-      <div className="max-w-5xl mx-auto">
-        <div className="mb-8 flex items-center justify-between">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <FiArrowLeft />
-            Back to Home
-          </Link>
-          <button
-            onClick={handleSignOut}
-            className="inline-flex items-center gap-2 text-sm text-destructive hover:opacity-80 transition"
-          >
-            <FiLogOut />
-            Sign Out
-          </button>
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* LEFT: PROFILE CARD */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="lg:col-span-1"
-          >
-            <div className="glass rounded-3xl p-8 shadow-soft border-border sticky top-28">
-              <div className="flex flex-col items-center text-center">
-                <div className="h-24 w-24 rounded-full bg-foreground/5 flex items-center justify-center mb-4 border-2 border-border">
+    <PageShell>
+      <div className="min-h-screen bg-background pt-32 pb-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          {/* TOP HEADER */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+            <div>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center gap-4 mb-4"
+              >
+                <div className="h-20 w-20 rounded-3xl bg-foreground/5 flex items-center justify-center border-2 border-border overflow-hidden shadow-soft">
                   {user?.imageUrl ? (
-                    <img
-                      src={user.imageUrl}
-                      alt="Profile"
-                      className="h-full w-full rounded-full object-cover"
-                    />
+                    <img src={user.imageUrl} alt="Profile" className="h-full w-full object-cover" />
                   ) : (
-                    <FiUser size={40} className="text-muted-foreground" />
+                    <FiUser size={32} className="text-muted-foreground" />
                   )}
                 </div>
-                <h2 className="text-xl font-bold tracking-tight">
-                  {displayName || user?.username}
-                </h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {dbUser?.email || user?.primaryEmailAddress?.emailAddress}
-                </p>
-
-                <div className="mt-6 w-full space-y-3">
-                  <div className="flex items-center gap-3 p-3 rounded-2xl bg-foreground/5 text-sm">
-                    <FiHash className="text-muted-foreground" />
-                    <span className="font-mono text-xs">{dbUser?.userId}</span>
-                  </div>
-                  <button
-                    onClick={() => setIsEditingName(!isEditingName)}
-                    className="flex items-center justify-center gap-2 w-full p-3 rounded-2xl glass text-sm font-medium hover:bg-foreground/5 transition"
-                  >
-                    <FiSettings size={16} />
-                    Edit Profile
-                  </button>
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight">{displayName}</h1>
+                  <p className="text-muted-foreground flex items-center gap-2 text-sm">
+                    <FiMail size={14} />
+                    {dbUser?.email}
+                  </p>
                 </div>
-              </div>
+              </motion.div>
             </div>
-          </motion.div>
 
-          {/* RIGHT: CONTENT */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* EDIT NAME FORM */}
-            {isEditingName && (
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                to="/create-event"
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-foreground text-background font-bold hover:scale-[1.02] transition shadow-card"
+              >
+                <FiPlus />
+                Create Event
+              </Link>
+              <button
+                onClick={() => setIsEditingName(true)}
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl glass border-border font-bold hover:bg-foreground/5 transition"
+              >
+                <FiSettings />
+                Settings
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-rose-500/10 text-rose-500 font-bold hover:bg-rose-500/20 transition"
+              >
+                <FiLogOut />
+                Logout
+              </button>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-4 gap-8">
+            {/* SIDEBAR */}
+            <div className="lg:col-span-1 space-y-6">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass rounded-3xl p-6 border-border"
+                className="glass rounded-[2rem] p-8 border-border shadow-soft space-y-8"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold">Update Name</h3>
-                  <button
-                    onClick={() => {
-                      setIsEditingName(false);
-                      setEditFirstName(dbUser?.firstName || "");
-                      setEditLastName(dbUser?.lastName || "");
-                    }}
-                    className="p-1 hover:bg-foreground/10 rounded-lg transition"
-                  >
-                    <FiX size={20} />
-                  </button>
+                <div>
+                  <h3 className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-4">Account Stats</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 text-sm font-medium">
+                        <FiAward className="text-blue-500" />
+                        Host Rank
+                      </div>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 uppercase">
+                        Silver
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 text-sm font-medium">
+                        <FiBriefcase className="text-emerald-500" />
+                        Role
+                      </div>
+                      <span className="text-xs font-bold text-foreground capitalize">
+                        {dbUser?.role}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground ml-1">
-                      First Name
-                    </label>
-                    <input
-                      type="text"
-                      value={editFirstName}
-                      onChange={(e) => setEditFirstName(e.target.value)}
-                      placeholder="Enter your first name"
-                      disabled={isSaving}
-                      className="w-full mt-2 px-4 py-3 rounded-xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
+                <div className="pt-8 border-t border-border">
+                  <h3 className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-4">Identification</h3>
+                  <div className="p-4 rounded-2xl bg-foreground/5 space-y-2">
+                    <div className="text-[10px] text-muted-foreground font-bold flex items-center gap-1.5">
+                      <FiHash /> UNIQUE USER ID
+                    </div>
+                    <div className="font-mono text-xs break-all text-foreground">
+                      {dbUser?.userId}
+                    </div>
                   </div>
+                </div>
 
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground ml-1">
-                      Last Name
-                    </label>
-                    <input
-                      type="text"
-                      value={editLastName}
-                      onChange={(e) => setEditLastName(e.target.value)}
-                      placeholder="Enter your last name (optional)"
-                      disabled={isSaving}
-                      className="w-full mt-2 px-4 py-3 rounded-xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleSaveName}
-                      disabled={isSaving}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-foreground text-background font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                <div className="pt-8 border-t border-border space-y-3">
+                  {dbUser?.role === "admin" && (
+                    <Link
+                      to="/analytics"
+                      className="flex items-center gap-3 w-full p-4 rounded-2xl bg-blue-500 text-white font-bold hover:opacity-90 transition shadow-lg shadow-blue-500/20 text-sm"
                     >
-                      <FiCheck size={16} />
-                      {isSaving ? "Saving..." : "Save Changes"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsEditingName(false);
-                        setEditFirstName(dbUser?.firstName || "");
-                        setEditLastName(dbUser?.lastName || "");
-                      }}
-                      disabled={isSaving}
-                      className="flex-1 py-3 rounded-xl glass text-sm font-medium hover:bg-foreground/5 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      <FiShield />
+                      Admin Panel
+                    </Link>
+                  )}
+                  {dbUser?.createdEvents && dbUser.createdEvents.length > 0 && (
+                    <Link
+                      to="/dashboard"
+                      className="flex items-center gap-3 w-full p-4 rounded-2xl glass border-border font-bold hover:bg-foreground/5 transition text-sm"
                     >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* STATS */}
-            <div className="grid grid-cols-2 gap-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1 }}
-                className="glass rounded-3xl p-6 border-border"
-              >
-                <div className="text-2xl font-bold">{dbUser?.createdEvents?.length || 0}</div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">
-                  Hosted Events
-                </div>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="glass rounded-3xl p-6 border-border"
-              >
-                <div className="text-2xl font-bold">{dbUser?.joinedEvents?.length || 0}</div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">
-                  Joined Events
+                      <FiActivity />
+                      Organizer Dashboard
+                    </Link>
+                  )}
                 </div>
               </motion.div>
             </div>
 
-            {/* EVENTS LIST */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="glass rounded-3xl border-border overflow-hidden"
-            >
-              <div className="p-6 border-b border-border flex items-center justify-between">
-                <h3 className="font-bold flex items-center gap-2">
-                  <FiCalendar className="text-muted-foreground" />
-                  Your Events
-                </h3>
-              </div>
-              <div className="p-6">
-                {!dbUser?.createdEvents?.length && !dbUser?.joinedEvents?.length ? (
-                  <div className="text-center py-12">
-                    <p className="text-sm text-muted-foreground">
-                      No events found. Start exploring!
-                    </p>
-                    <Link
-                      to="/"
-                      className="text-xs text-foreground font-medium mt-4 inline-block hover:underline"
+            {/* MAIN CONTENT */}
+            <div className="lg:col-span-3 space-y-8">
+              {/* EDITING MODAL OVERLAY */}
+              <AnimatePresence>
+                {isEditingName && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/80 backdrop-blur-sm"
+                  >
+                    <motion.div
+                      initial={{ scale: 0.95, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.95, opacity: 0 }}
+                      className="glass rounded-[2.5rem] p-8 border-border shadow-2xl w-full max-w-md"
                     >
-                      Find events
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Render events here if needed */}
-                    <p className="text-xs text-muted-foreground italic">
-                      List of events will appear here.
-                    </p>
-                  </div>
+                      <div className="flex items-center justify-between mb-8">
+                        <h2 className="text-2xl font-bold">Update Profile</h2>
+                        <button onClick={() => setIsEditingName(false)} className="p-2 hover:bg-foreground/5 rounded-full transition">
+                          <FiX size={24} />
+                        </button>
+                      </div>
+
+                      <div className="space-y-6">
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">First Name</label>
+                          <input
+                            type="text"
+                            value={editFirstName}
+                            onChange={(e) => setEditFirstName(e.target.value)}
+                            className="w-full px-5 py-4 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Last Name</label>
+                          <input
+                            type="text"
+                            value={editLastName}
+                            onChange={(e) => setEditLastName(e.target.value)}
+                            className="w-full px-5 py-4 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition"
+                          />
+                        </div>
+                        <button
+                          onClick={handleSaveName}
+                          disabled={isSaving}
+                          className="w-full py-4 rounded-2xl bg-foreground text-background font-bold hover:opacity-90 transition shadow-card disabled:opacity-50"
+                        >
+                          {isSaving ? "Saving..." : "Save Changes"}
+                        </button>
+                      </div>
+                    </motion.div>
+                  </motion.div>
                 )}
+              </AnimatePresence>
+
+              {/* STATS ROW */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.1 }}
+                  className="glass rounded-[2rem] p-8 border-border shadow-soft flex items-center gap-6"
+                >
+                  <div className="h-14 w-14 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                    <FiCalendar size={28} />
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold">{dbUser?.createdEvents?.length || 0}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-widest font-bold mt-1">Events Hosted</div>
+                  </div>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="glass rounded-[2rem] p-8 border-border shadow-soft flex items-center gap-6"
+                >
+                  <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                    <FiUsers size={28} />
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold">{tickets.length}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-widest font-bold mt-1">Tickets Booked</div>
+                  </div>
+                </motion.div>
               </div>
-            </motion.div>
+
+              {/* REGISTERED EVENTS / TICKETS */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="glass rounded-[2.5rem] border-border overflow-hidden shadow-soft"
+              >
+                <div className="p-8 border-b border-border bg-foreground/[0.02] flex items-center justify-between">
+                  <h3 className="text-xl font-bold flex items-center gap-3">
+                    <FiAward className="text-emerald-500" />
+                    My Digital Tickets
+                  </h3>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
+                    Showing {tickets.length} Active Tickets
+                  </div>
+                </div>
+
+                <div className="p-8">
+                  {tickets.length === 0 ? (
+                    <div className="text-center py-20">
+                      <div className="h-20 w-20 rounded-full bg-foreground/5 flex items-center justify-center mx-auto mb-6">
+                        <FiCalendar size={32} className="text-muted-foreground" />
+                      </div>
+                      <h4 className="text-lg font-bold mb-2">No tickets found</h4>
+                      <p className="text-sm text-muted-foreground mb-8">You haven't registered for any events yet. Discover exciting experiences today!</p>
+                      <Link
+                        to="/events"
+                        className="px-8 py-3 rounded-2xl bg-foreground text-background font-bold hover:opacity-90 transition shadow-card inline-block"
+                      >
+                        Explore Events
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="grid gap-6">
+                      {tickets.map((ticket, i) => (
+                        <motion.div
+                          key={ticket._id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.4 + i * 0.1 }}
+                          className="group relative overflow-hidden glass rounded-3xl border-border flex flex-col md:flex-row shadow-sm hover:shadow-soft transition-all"
+                        >
+                          <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
+                          <div className="p-6 md:p-8 flex-1">
+                            <div className="flex items-center gap-3 mb-3">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-foreground/5 font-bold uppercase tracking-tighter">
+                                {ticket.event.category}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1.5">
+                                <FiCalendar />
+                                {format(new Date(ticket.event.date), "PPP")}
+                              </span>
+                            </div>
+                            <h4 className="text-2xl font-bold mb-2 group-hover:text-emerald-500 transition-colors">
+                              {ticket.event.title}
+                            </h4>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <FiMapPin />
+                              {ticket.event.location}
+                            </div>
+                          </div>
+                          <div className="p-6 md:p-8 md:w-64 border-t md:border-t-0 md:border-l border-border bg-foreground/[0.01] flex flex-col justify-center items-center md:items-end">
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1 text-center md:text-right">
+                              Ticket Code
+                            </div>
+                            <div className="font-mono text-xl font-black tracking-tighter text-foreground mb-4">
+                              {ticket.ticketCode}
+                            </div>
+                            <Link
+                              to="/events/$id"
+                              params={{ id: ticket.event._id }}
+                              className="flex items-center gap-2 text-xs font-bold text-blue-500 hover:underline"
+                            >
+                              <FiExternalLink />
+                              View Event Details
+                            </Link>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

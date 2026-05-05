@@ -7,6 +7,7 @@ interface DbUser {
   userId: string;
   email: string;
   role: "user" | "admin";
+  createdEvents?: string[];
 }
 
 interface DbUserContextType {

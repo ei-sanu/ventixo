@@ -3,14 +3,14 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { HiMenu, HiX } from "react-icons/hi";
 import { SignedIn, SignedOut, SignOutButton, useUser } from "@clerk/clerk-react";
-import { FiUser, FiLogOut, FiWifi, FiShield } from "react-icons/fi";
+import { FiUser, FiLogOut, FiWifi, FiShield, FiActivity } from "react-icons/fi";
 import { AuthModal } from "./AuthModal";
 import { Logo } from "./Logo";
 
 const links = [
   { to: "/", label: "Home" },
+  { to: "/events", label: "Events" },
   { to: "/workflow", label: "Workflow" },
-  { to: "/create-event", label: "Create Event" },
   { to: "/about", label: "About" },
 ] as const;
 
@@ -83,6 +83,15 @@ export function Navbar() {
                   >
                     <FiShield size={14} />
                     Admin
+                  </Link>
+                )}
+                {dbUser?.createdEvents && dbUser.createdEvents.length > 0 && (
+                  <Link
+                    to="/dashboard"
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-foreground/5 text-foreground text-xs font-bold uppercase tracking-wider hover:bg-foreground/10 transition"
+                  >
+                    <FiActivity size={14} />
+                    Dashboard
                   </Link>
                 )}
                 <Link
@@ -161,6 +170,16 @@ export function Navbar() {
                     >
                       <FiShield size={16} />
                       Admin Dashboard
+                    </Link>
+                  )}
+                  {dbUser?.createdEvents && dbUser.createdEvents.length > 0 && (
+                    <Link
+                      to="/dashboard"
+                      onClick={() => setOpen(false)}
+                      className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-foreground text-background text-xs font-bold uppercase tracking-wider shadow-lg"
+                    >
+                      <FiActivity size={16} />
+                      Organizer Dashboard
                     </Link>
                   )}
                   <div className="grid grid-cols-2 gap-2">

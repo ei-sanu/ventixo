@@ -26,6 +26,18 @@ export const getEventsCreatedByUser = async (userId) => {
     .sort({ createdAt: -1 });
 };
 
+export const getEventById = async (eventId) => {
+  const event = await Event.findById(eventId)
+    .populate("organizer", "username firstName lastName email")
+    .populate("participants", "username firstName lastName email userId");
+
+  if (!event) {
+    throw new ApiError(404, "Event not found");
+  }
+
+  return event;
+};
+
 export const joinEvent = async ({ eventId, user }) => {
   const event = await Event.findById(eventId);
 

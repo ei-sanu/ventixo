@@ -174,6 +174,21 @@ export const updateUserProfile = async (userId, { firstName, lastName }) => {
   return user;
 };
 
+export const syncUserEvents = async (userId) => {
+  const [createdEvents, joinedEvents] = await Promise.all([
+    Event.find({ organizer: userId }).distinct("_id"),
+    Event.find({ participants: userId }).distinct("_id"),
+  ]);
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { createdEvents, joinedEvents },
+    { new: true, runValidators: true },
+  );
+
+  return user;
+};
+
 export const searchUsers = async ({ username, userId }) => {
   const filters = {};
 
@@ -185,8 +200,14 @@ export const searchUsers = async ({ username, userId }) => {
     filters.userId = { $regex: `^${escapeRegex(userId)}` };
   }
 
-  return User.find(filters)
-    .select("username userId email role createdAt")
+  const users = await User.find(filters)
+    .select("username userId email role createdAt createdEvents joinedEvents")
     .sort({ createdAt: -1 })
     .limit(50);
+
+  return users.map((u) => ({
+    ...u.toObject(),
+    createdCount: u.createdEvents?.length || 0,
+    joinedCount: u.joinedEvents?.length || 0,
+  }));
 };

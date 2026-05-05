@@ -1,5 +1,7 @@
+import Event from "../models/Event.js";
 import {
   createEvent,
+  getEventById,
   getEventsCreatedByUser,
   getOngoingEvents,
   joinEvent,
@@ -32,6 +34,17 @@ export const getMyEvents = asyncHandler(async (req, res) => {
   });
 });
 
+export const getEventDetails = asyncHandler(async (req, res) => {
+  const event = await getEventById(req.params.id);
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      event,
+    },
+  });
+});
+
 export const joinCurrentUserToEvent = asyncHandler(async (req, res) => {
   const event = await joinEvent({
     eventId: req.params.id,
@@ -43,6 +56,17 @@ export const joinCurrentUserToEvent = asyncHandler(async (req, res) => {
     message: "Joined event successfully",
     data: {
       event,
+    },
+  });
+});
+
+export const getOngoingPublishedEvents = asyncHandler(async (_req, res) => {
+  const events = await getOngoingEvents();
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      events,
     },
   });
 });

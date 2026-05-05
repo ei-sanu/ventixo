@@ -1,4 +1,9 @@
-import { getUserProfile, syncUser, updateUserProfile } from "../services/user.service.js";
+import {
+  getUserProfile,
+  syncUser,
+  syncUserEvents,
+  updateUserProfile,
+} from "../services/user.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const syncCurrentUser = asyncHandler(async (req, res) => {
@@ -38,6 +43,18 @@ export const updateCurrentUserProfile = asyncHandler(async (req, res) => {
   return res.status(200).json({
     success: true,
     message: "Profile updated successfully",
+    data: {
+      user,
+    },
+  });
+});
+
+export const syncMyEvents = asyncHandler(async (req, res) => {
+  const user = await syncUserEvents(req.user._id);
+
+  return res.status(200).json({
+    success: true,
+    message: "Profile events synchronized",
     data: {
       user,
     },

@@ -92,8 +92,15 @@ export function HeroSection() {
               </SignedIn>
 
               <Link
-                to="/workflow"
+                to="/events"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full glass font-medium hover:scale-[1.03] transition"
+              >
+                Explore Events
+              </Link>
+
+              <Link
+                to="/workflow"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full hover:underline font-medium text-sm text-muted-foreground transition"
               >
                 View Workflow
               </Link>

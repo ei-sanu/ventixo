@@ -1,6 +1,6 @@
 import { ThreeOrb } from "@/components/ThreeOrb";
 import { isClerkConfigured } from "@/lib/clerk";
-import { SignedIn, SignedOut, useSignIn, useSignUp } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, useSignIn, useSignUp, useUser, useAuth } from "@clerk/clerk-react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -21,6 +21,40 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const navigate = useNavigate();
+  const { isSignedIn, isLoaded, user } = useUser();
+  const { getToken } = useAuth();
+  const [syncTriggered, setSyncTriggered] = useState(false);
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn && !syncTriggered) {
+      setSyncTriggered(true);
+      const triggerSync = async () => {
+        try {
+          const token = await getToken();
+          if (token) {
+            const response = await fetch("/api/users/sync", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ username: user?.username || undefined }),
+            });
+            if (!response.ok && response.status !== 409) {
+              console.warn("Sync response not ok:", response.status);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to sync user on login page:", error);
+        }
+      };
+      triggerSync().finally(() => {
+        setTimeout(() => {
+          navigate({ to: "/profile" });
+        }, 500);
+      });
+    }
+  }, [isLoaded, isSignedIn, user?.username, getToken, navigate, syncTriggered]);
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
@@ -211,7 +245,7 @@ function CustomAuthPanel({
       await (mode === "signin" ? signIn : signUp).authenticateWithRedirect({
         strategy,
         redirectUrl: "/login",
-        redirectUrlComplete: "/",
+        redirectUrlComplete: "/profile",
       });
     } catch (err: unknown) {
       const error = err as { errors?: { message: string }[] };

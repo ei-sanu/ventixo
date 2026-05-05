@@ -135,8 +135,8 @@ function RootComponent() {
     <ClerkProvider
       publishableKey={clerkPublishableKey}
       afterSignOutUrl="/login"
-      signInFallbackRedirectUrl="/"
-      signUpFallbackRedirectUrl="/"
+      signInFallbackRedirectUrl="/profile"
+      signUpFallbackRedirectUrl="/profile"
     >
       <ClerkWrapper isAppLoaded={isAppLoaded} setIsAppLoaded={setIsAppLoaded}>
         <Outlet />

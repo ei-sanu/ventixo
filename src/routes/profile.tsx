@@ -199,11 +199,7 @@ function ProfilePage() {
                 className="flex items-center gap-4 mb-4"
               >
                 <div className="h-20 w-20 rounded-3xl bg-foreground/5 flex items-center justify-center border-2 border-border overflow-hidden shadow-soft">
-                  {user?.imageUrl ? (
-                    <img src={user.imageUrl} alt="Profile" className="h-full w-full object-cover" />
-                  ) : (
-                    <FiUser size={32} className="text-muted-foreground" />
-                  )}
+                  <FiUser size={32} className="text-muted-foreground" />
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold tracking-tight">{displayName}</h1>

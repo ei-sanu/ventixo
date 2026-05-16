@@ -126,7 +126,15 @@ function CustomAuthPanel({
         body: JSON.stringify(body),
       });
 
-      const data = await response.json();
+      let data;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        console.error("Unexpected response format:", text);
+        throw new Error(`Server returned non-JSON response: ${response.status}`);
+      }
 
       if (response.ok) {
         setAuthToken(data.data.token);
@@ -139,7 +147,7 @@ function CustomAuthPanel({
       }
     } catch (err) {
       console.error("Auth error:", err);
-      toast.error("Something went wrong. Please try again.");
+      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }

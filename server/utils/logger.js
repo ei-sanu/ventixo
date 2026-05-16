@@ -6,7 +6,18 @@ const log = (level, message, meta) => {
     ...(meta ? { meta } : {}),
   };
 
-  const output = JSON.stringify(payload);
+  let output;
+  try {
+    output = JSON.stringify(payload);
+  } catch (error) {
+    // Fallback for circular references or other stringify issues
+    output = JSON.stringify({
+      level,
+      message,
+      timestamp: payload.timestamp,
+      error: "Log payload contains circular references",
+    });
+  }
 
   if (level === "error") {
     console.error(output);

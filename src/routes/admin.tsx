@@ -158,7 +158,7 @@ function AdminPage() {
                         <FiMapPin /> {event.location}
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <FiUser /> Organized by {event.organizer?.username}
+                        <FiUser /> Organized by {event.organizer?.username || "Deleted User"}
                       </div>
                     </div>
                   </div>
@@ -198,15 +198,15 @@ function AdminPage() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {users.map((u) => (
-                    <tr key={u._id} className="hover:bg-foreground/5 transition-colors">
+                    <tr key={u?._id} className="hover:bg-foreground/5 transition-colors">
                       <td className="px-8 py-4">
-                        <div className="font-medium text-foreground">{u.firstName} {u.lastName}</div>
-                        <div className="text-[10px] text-muted-foreground">@{u.username}</div>
+                        <div className="font-medium text-foreground">{u?.firstName || ""} {u?.lastName || "User"}</div>
+                        <div className="text-[10px] text-muted-foreground">@{u?.username || "deleted"}</div>
                       </td>
-                      <td className="px-8 py-4 text-xs font-mono">{u.userId}</td>
-                      <td className="px-8 py-4 text-sm">{u.email}</td>
+                      <td className="px-8 py-4 text-xs font-mono">{u?.userId || "---"}</td>
+                      <td className="px-8 py-4 text-sm">{u?.email || "---"}</td>
                       <td className="px-8 py-4 text-xs text-muted-foreground">
-                        {new Date(u.createdAt).toLocaleDateString()}
+                        {u?.createdAt ? new Date(u.createdAt).toLocaleDateString() : "Unknown"}
                       </td>
                     </tr>
                   ))}

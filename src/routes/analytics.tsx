@@ -120,14 +120,14 @@ function AdminPanel() {
   }
 
   const filteredEvents = events.filter(e => 
-    e.title.toLowerCase().includes(search.toLowerCase()) || 
-    e.organizer.username.toLowerCase().includes(search.toLowerCase())
+    e?.title?.toLowerCase().includes(search.toLowerCase()) || 
+    e?.organizer?.username?.toLowerCase().includes(search.toLowerCase())
   );
 
   const filteredUsers = users.filter(u => 
-    u.username.toLowerCase().includes(search.toLowerCase()) || 
-    u.email.toLowerCase().includes(search.toLowerCase()) ||
-    u.userId.includes(search)
+    u?.username?.toLowerCase().includes(search.toLowerCase()) || 
+    u?.email?.toLowerCase().includes(search.toLowerCase()) ||
+    u?.userId?.includes(search)
   );
 
   return (
@@ -215,7 +215,7 @@ function AdminPanel() {
                       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
                           <FiUser className="shrink-0" />
-                          <span>{event.organizer.username}</span>
+                          <span>{event.organizer?.username || "Deleted User"}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <FiCalendar className="shrink-0" />
@@ -223,7 +223,7 @@ function AdminPanel() {
                         </div>
                         <div className="flex items-center gap-2">
                           <FiUsers className="shrink-0" />
-                          <span>{event.participants.length} joined</span>
+                          <span>{event.participants?.length || 0} joined</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <FiMapPin className="shrink-0" />
@@ -231,7 +231,7 @@ function AdminPanel() {
                         </div>
                         <div className="flex items-center gap-2 text-[10px] bg-foreground/5 px-2 py-0.5 rounded-full">
                           <FiMail className="shrink-0" />
-                          <span>{event.organizer.email}</span>
+                          <span>{event.organizer?.email || "---"}</span>
                         </div>
                       </div>
                     </div>
@@ -279,36 +279,36 @@ function AdminPanel() {
                   </thead>
                   <tbody className="divide-y divide-border">
                     {filteredUsers.map((user) => (
-                      <tr key={user._id} className="hover:bg-foreground/5 transition-colors group">
+                      <tr key={user?._id} className="hover:bg-foreground/5 transition-colors group">
                         <td className="px-8 py-5">
                           <div>
-                            <div className="font-bold text-foreground">{user.username}</div>
+                            <div className="font-bold text-foreground">{user?.username || "Deleted User"}</div>
                             <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
                               <FiMail className="shrink-0" />
-                              {user.email}
+                              {user?.email || "---"}
                             </div>
                           </div>
                         </td>
-                        <td className="px-8 py-5 font-mono text-xs">{user.userId}</td>
+                        <td className="px-8 py-5 font-mono text-xs">{user?.userId || "---"}</td>
                         <td className="px-8 py-5">
                           <div className="flex flex-col gap-1">
                             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
-                              {user.createdCount} Created
+                              {user?.createdCount || 0} Created
                             </span>
                             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
-                              {user.joinedCount} Joined
+                              {user?.joinedCount || 0} Joined
                             </span>
                           </div>
                         </td>
                         <td className="px-8 py-5">
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            user.role === "admin" ? "bg-blue-500/10 text-blue-500" : "bg-foreground/5 text-muted-foreground"
+                            user?.role === "admin" ? "bg-blue-500/10 text-blue-500" : "bg-foreground/5 text-muted-foreground"
                           }`}>
-                            {user.role}
+                            {user?.role || "user"}
                           </span>
                         </td>
                         <td className="px-8 py-5 text-right text-xs text-muted-foreground">
-                          {format(new Date(user.createdAt), "MMM d, yyyy")}
+                          {user?.createdAt ? format(new Date(user.createdAt), "MMM d, yyyy") : "---"}
                         </td>
                       </tr>
                     ))}

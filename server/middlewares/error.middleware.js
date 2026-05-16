@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { ApiError } from "../utils/ApiError.js";
 import { logger } from "../utils/logger.js";
+import { env } from "../config/env.js";
 
 const duplicateKeyMessage = (error) => {
   const field = Object.keys(error.keyPattern || error.keyValue || {})[0] || "field";
@@ -37,17 +38,17 @@ export const errorHandler = (error, req, res, _next) => {
 
   if (statusCode >= 500) {
     logger.error(message, {
-      method: req.method,
-      path: req.originalUrl,
+      method: req?.method,
+      path: req?.originalUrl,
       stack: error.stack,
     });
-    // Also log to console.error directly for visibility
-    console.error(`[Error] ${req.method} ${req.path} failed:`, error);
+    console.error(`[Error] ${req?.method} ${req?.path} failed:`, error);
   }
 
   return res.status(statusCode).json({
     success: false,
     message,
     ...(details ? { details } : {}),
+    ...(env.nodeEnv === "development" && { stack: error.stack }),
   });
 };

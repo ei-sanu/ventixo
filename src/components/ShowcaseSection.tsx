@@ -46,6 +46,7 @@ const FEATURE_DATA = [
 export function ShowcaseSection() {
   const [selectedFeature, setSelectedFeature] = useState<(typeof FEATURE_DATA)[0] | null>(null);
   const { openAuthModal } = useAuthModal();
+  const { isSignedIn } = useDbUser();
 
   return (
     <section className="relative py-32 overflow-hidden bg-background">

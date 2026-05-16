@@ -172,3 +172,8 @@ export const searchUsers = async ({ username, userId }) => {
     joinedCount: u.joinedEvents?.length || 0,
   }));
 };
+
+export const isUsernameAvailable = async (username) => {
+  const exists = await User.exists({ username: username.toLowerCase() });
+  return !exists;
+};

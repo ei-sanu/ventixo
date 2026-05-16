@@ -6,12 +6,14 @@ import {
   registerUser,
   loginUser,
   logoutUser,
+  checkUsername,
 } from "../controllers/user.controller.js";
 import { attachUser, requireAuth } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
 // Public routes
+router.get("/check-username", checkUsername);
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/logout", logoutUser);

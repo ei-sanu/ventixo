@@ -3,6 +3,7 @@ import {
   updateUserProfile,
   register,
   login,
+  isUsernameAvailable,
 } from "../services/user.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -123,6 +124,22 @@ export const markNotificationsAsRead = asyncHandler(async (req, res) => {
     message: "Notifications marked as read",
     data: {
       user,
+    },
+  });
+});
+
+export const checkUsername = asyncHandler(async (req, res) => {
+  const { username } = req.query;
+  if (!username) {
+    throw new ApiError(400, "Username is required");
+  }
+
+  const available = await isUsernameAvailable(username);
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      available,
     },
   });
 });

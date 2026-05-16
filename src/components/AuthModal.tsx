@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiX, FiMail, FiLock, FiUser } from "react-icons/fi";
+import { FiX, FiMail, FiLock, FiUser, FiCheck } from "react-icons/fi";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Logo } from "./Logo";
@@ -108,6 +108,8 @@ function CustomAuthPanel({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -116,10 +118,42 @@ function CustomAuthPanel({
   // Clear error when mode changes
   useEffect(() => {
     setError(null);
+    setUsernameAvailable(null);
   }, [mode]);
+
+  // Check username availability
+  useEffect(() => {
+    if (mode !== "signup" || username.length < 3) {
+      setUsernameAvailable(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsCheckingUsername(true);
+      try {
+        const response = await fetch(`/api/users/check-username?username=${username}`);
+        if (response.ok) {
+          const data = await response.json();
+          setUsernameAvailable(data.data.available);
+        }
+      } catch (err) {
+        console.error("Username check failed:", err);
+      } finally {
+        setIsCheckingUsername(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [username, mode]);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (mode === "signup" && usernameAvailable === false) {
+      setError("Please choose a different username.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -185,10 +219,28 @@ function CustomAuthPanel({
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="username"
-                className="w-full pl-11 pr-4 py-3 rounded-xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm"
+                className={`w-full pl-11 pr-10 py-3 rounded-xl glass border-border focus:ring-2 outline-none transition text-sm ${
+                  usernameAvailable === true ? "focus:ring-emerald-500/20 border-emerald-500/50" : 
+                  usernameAvailable === false ? "focus:ring-rose-500/20 border-rose-500/50" : "focus:ring-foreground/10"
+                }`}
                 required={mode === "signup"}
               />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                {isCheckingUsername ? (
+                  <div className="h-4 w-4 rounded-full border-2 border-foreground/20 border-t-foreground animate-spin" />
+                ) : usernameAvailable === true ? (
+                  <FiCheck className="text-emerald-500" size={16} />
+                ) : usernameAvailable === false ? (
+                  <FiX className="text-rose-500" size={16} />
+                ) : null}
+              </div>
             </div>
+            {usernameAvailable === false && (
+              <p className="text-[10px] text-rose-500 ml-1 font-medium">This username is already taken.</p>
+            )}
+            {username.length > 0 && username.length < 3 && (
+              <p className="text-[10px] text-muted-foreground ml-1 font-medium">Minimum 3 characters required.</p>
+            )}
           </div>
         )}
 
@@ -224,7 +276,7 @@ function CustomAuthPanel({
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || (mode === "signup" && usernameAvailable === false)}
           className="w-full py-3 rounded-xl bg-foreground text-background font-medium hover:opacity-90 transition shadow-card disabled:opacity-50"
         >
           {loading ? "Please wait..." : mode === "signin" ? "Sign In" : "Create Account"}

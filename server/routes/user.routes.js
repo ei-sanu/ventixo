@@ -1,18 +1,24 @@
 import { Router } from "express";
 import {
   getCurrentUserProfile,
-  syncCurrentUser,
-  syncMyEvents,
   updateCurrentUserProfile,
+  markNotificationsAsRead,
+  registerUser,
+  loginUser,
+  logoutUser,
 } from "../controllers/user.controller.js";
 import { attachUser, requireAuth } from "../middlewares/auth.middleware.js";
-import { syncUserValidator } from "../validators/user.validator.js";
 
 const router = Router();
 
-router.post("/sync", requireAuth, syncUserValidator, syncCurrentUser);
-router.post("/sync-events", requireAuth, attachUser, syncMyEvents);
+// Public routes
+router.post("/register", registerUser);
+router.post("/login", loginUser);
+router.post("/logout", logoutUser);
+
+// Protected routes
 router.get("/me", requireAuth, attachUser, getCurrentUserProfile);
 router.patch("/me", requireAuth, attachUser, updateCurrentUserProfile);
+router.post("/notifications/read", requireAuth, attachUser, markNotificationsAsRead);
 
 export default router;

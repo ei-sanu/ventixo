@@ -1,9 +1,10 @@
-import { useAuth, useUser } from "@clerk/clerk-react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { FiArrowLeft, FiCalendar, FiCheck, FiInfo, FiMapPin, FiTag, FiUsers } from "react-icons/fi";
 import { toast } from "sonner";
+import { useDbUser } from "@/hooks/use-db-user";
+import { getAuthToken } from "@/lib/auth";
 
 export const Route = createFileRoute("/create-event")({
   component: CreateEventPage,
@@ -13,8 +14,7 @@ const CATEGORIES = ["Tech", "Cultural", "Other"];
 const TEAM_TYPES = ["Solo", "Duo", "Trio", "Quadra"];
 
 function CreateEventPage() {
-  const { isLoaded, user } = useUser();
-  const { getToken } = useAuth();
+  const { dbUser, loading: userLoading } = useDbUser();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -31,11 +31,11 @@ function CreateEventPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!dbUser) return;
 
     setIsSubmitting(true);
     try {
-      const token = await getToken();
+      const token = getAuthToken();
       const response = await fetch("/api/events/create", {
         method: "POST",
         headers: {
@@ -60,7 +60,7 @@ function CreateEventPage() {
     }
   };
 
-  if (!isLoaded) {
+  if (userLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="h-8 w-8 rounded-full border-2 border-foreground/20 border-t-foreground animate-spin" />

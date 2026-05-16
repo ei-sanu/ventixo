@@ -1,4 +1,3 @@
-import { useAuth, useClerk, useUser } from "@clerk/clerk-react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -19,11 +18,16 @@ import {
   FiMail,
   FiAward,
   FiBriefcase,
-  FiUsers
+  FiUsers,
+  FiBell,
+  FiCheckCircle,
+  FiInfo
 } from "react-icons/fi";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { PageShell } from "@/components/PageShell";
+import { useDbUser } from "@/hooks/use-db-user";
+import { getAuthToken } from "@/lib/auth";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -48,6 +52,15 @@ interface Ticket {
   };
 }
 
+interface Notification {
+  _id: string;
+  title: string;
+  message: string;
+  type: "info" | "success" | "warning" | "error";
+  read: boolean;
+  createdAt: string;
+}
+
 interface UserData {
   _id: string;
   username: string;
@@ -58,51 +71,68 @@ interface UserData {
   role: string;
   createdEvents: any[];
   joinedEvents: any[];
+  notifications: Notification[];
   createdAt: string;
 }
 
 function ProfilePage() {
-  const { user, isLoaded } = useUser();
-  const { signOut } = useClerk();
-  const { getToken } = useAuth();
-  const [dbUser, setDbUser] = useState<UserData | null>(null);
+  const { dbUser, loading: userLoading, logout, refreshDbUser } = useDbUser();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"tickets" | "notifications">("tickets");
   const [isEditingName, setIsEditingName] = useState(false);
   const [editFirstName, setEditFirstName] = useState("");
   const [editLastName, setEditLastName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const navigate = useNavigate();
 
+  const fetchUserData = async () => {
+    if (!dbUser) return;
+    try {
+      const token = getAuthToken();
+      const ticketsRes = await fetch("/api/tickets/my-tickets", { 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
+
+      if (!ticketsRes.ok) throw new Error("Failed to fetch tickets");
+
+      const ticketsJson = await ticketsRes.json();
+
+      setTickets(ticketsJson.data.tickets);
+      setEditFirstName(dbUser.firstName || "");
+      setEditLastName(dbUser.lastName || "");
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not load tickets");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchUserData = async () => {
-      if (!isLoaded || !user) return;
-      try {
-        const token = await getToken();
-        const [userRes, ticketsRes] = await Promise.all([
-          fetch("/api/users/me", { headers: { Authorization: `Bearer ${token}` } }),
-          fetch("/api/tickets/my-tickets", { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
-
-        if (!userRes.ok || !ticketsRes.ok) throw new Error("Failed to fetch data");
-
-        const userJson = await userRes.json();
-        const ticketsJson = await ticketsRes.json();
-
-        setDbUser(userJson.data.user);
-        setTickets(ticketsJson.data.tickets);
-        setEditFirstName(userJson.data.user.firstName || "");
-        setEditLastName(userJson.data.user.lastName || "");
-      } catch (err) {
-        console.error(err);
-        toast.error("Could not load profile data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchUserData();
   }, [isLoaded, user, getToken]);
+
+  const markNotificationsRead = async () => {
+    if (!dbUser?.notifications.some(n => !n.read)) return;
+    
+    try {
+      const token = getAuthToken();
+      await fetch("/api/users/notifications/read", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      await refreshDbUser();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "notifications") {
+      markNotificationsRead();
+    }
+  }, [activeTab]);
 
   const handleSaveName = async () => {
     if (!dbUser || !editFirstName.trim()) {
@@ -112,7 +142,7 @@ function ProfilePage() {
 
     setIsSaving(true);
     try {
-      const token = await getToken();
+      const token = getAuthToken();
       const response = await fetch("/api/users/me", {
         method: "PATCH",
         headers: {
@@ -127,8 +157,7 @@ function ProfilePage() {
 
       if (!response.ok) throw new Error("Failed to update profile");
 
-      const json = await response.json();
-      setDbUser(json.data.user);
+      await refreshDbUser();
       setIsEditingName(false);
       toast.success("Profile updated successfully");
     } catch (err) {
@@ -140,12 +169,12 @@ function ProfilePage() {
   };
 
   const handleSignOut = async () => {
-    await signOut();
+    await logout();
     toast.success("Signed out successfully");
     navigate({ to: "/" });
   };
 
-  if (!isLoaded || loading) {
+  if (userLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="h-8 w-8 rounded-full border-2 border-foreground/20 border-t-foreground animate-spin" />
@@ -280,175 +309,258 @@ function ProfilePage() {
 
             {/* MAIN CONTENT */}
             <div className="lg:col-span-3 space-y-8">
-              {/* EDITING MODAL OVERLAY */}
-              <AnimatePresence>
-                {isEditingName && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/80 backdrop-blur-sm"
-                  >
+              {/* TABS */}
+              <div className="flex items-center gap-8 border-b border-border">
+                <button
+                  onClick={() => setActiveTab("tickets")}
+                  className={`pb-4 text-sm font-bold tracking-wider uppercase transition-colors relative ${
+                    activeTab === "tickets" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  My Tickets
+                  {activeTab === "tickets" && (
                     <motion.div
-                      initial={{ scale: 0.95, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.95, opacity: 0 }}
-                      className="glass rounded-[2.5rem] p-8 border-border shadow-2xl w-full max-w-md"
-                    >
-                      <div className="flex items-center justify-between mb-8">
-                        <h2 className="text-2xl font-bold">Update Profile</h2>
-                        <button onClick={() => setIsEditingName(false)} className="p-2 hover:bg-foreground/5 rounded-full transition">
-                          <FiX size={24} />
-                        </button>
-                      </div>
-
-                      <div className="space-y-6">
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">First Name</label>
-                          <input
-                            type="text"
-                            value={editFirstName}
-                            onChange={(e) => setEditFirstName(e.target.value)}
-                            className="w-full px-5 py-4 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Last Name</label>
-                          <input
-                            type="text"
-                            value={editLastName}
-                            onChange={(e) => setEditLastName(e.target.value)}
-                            className="w-full px-5 py-4 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition"
-                          />
-                        </div>
-                        <button
-                          onClick={handleSaveName}
-                          disabled={isSaving}
-                          className="w-full py-4 rounded-2xl bg-foreground text-background font-bold hover:opacity-90 transition shadow-card disabled:opacity-50"
-                        >
-                          {isSaving ? "Saving..." : "Save Changes"}
-                        </button>
-                      </div>
-                    </motion.div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* STATS ROW */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.1 }}
-                  className="glass rounded-[2rem] p-8 border-border shadow-soft flex items-center gap-6"
+                      layoutId="activeTab"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground"
+                    />
+                  )}
+                </button>
+                <button
+                  onClick={() => setActiveTab("notifications")}
+                  className={`pb-4 text-sm font-bold tracking-wider uppercase transition-colors relative flex items-center gap-2 ${
+                    activeTab === "notifications" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
                 >
-                  <div className="h-14 w-14 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
-                    <FiCalendar size={28} />
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold">{dbUser?.createdEvents?.length || 0}</div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-widest font-bold mt-1">Events Hosted</div>
-                  </div>
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="glass rounded-[2rem] p-8 border-border shadow-soft flex items-center gap-6"
-                >
-                  <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                    <FiUsers size={28} />
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold">{tickets.length}</div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-widest font-bold mt-1">Tickets Booked</div>
-                  </div>
-                </motion.div>
+                  Notifications
+                  {(dbUser?.notifications.filter(n => !n.read).length || 0) > 0 && (
+                    <span className="h-5 w-5 rounded-full bg-rose-500 text-[10px] text-white flex items-center justify-center">
+                      {dbUser?.notifications.filter(n => !n.read).length}
+                    </span>
+                  )}
+                  {activeTab === "notifications" && (
+                    <motion.div
+                      layoutId="activeTab"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground"
+                    />
+                  )}
+                </button>
               </div>
 
-              {/* REGISTERED EVENTS / TICKETS */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="glass rounded-[2.5rem] border-border overflow-hidden shadow-soft"
-              >
-                <div className="p-8 border-b border-border bg-foreground/[0.02] flex items-center justify-between">
-                  <h3 className="text-xl font-bold flex items-center gap-3">
-                    <FiAward className="text-emerald-500" />
-                    My Digital Tickets
-                  </h3>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-                    Showing {tickets.length} Active Tickets
-                  </div>
-                </div>
-
-                <div className="p-8">
-                  {tickets.length === 0 ? (
-                    <div className="text-center py-20">
-                      <div className="h-20 w-20 rounded-full bg-foreground/5 flex items-center justify-center mx-auto mb-6">
-                        <FiCalendar size={32} className="text-muted-foreground" />
-                      </div>
-                      <h4 className="text-lg font-bold mb-2">No tickets found</h4>
-                      <p className="text-sm text-muted-foreground mb-8">You haven't registered for any events yet. Discover exciting experiences today!</p>
-                      <Link
-                        to="/events"
-                        className="px-8 py-3 rounded-2xl bg-foreground text-background font-bold hover:opacity-90 transition shadow-card inline-block"
+              {activeTab === "tickets" ? (
+                <div className="space-y-8">
+                  {/* EDITING MODAL OVERLAY */}
+                  <AnimatePresence>
+                    {isEditingName && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/80 backdrop-blur-sm"
                       >
-                        Explore Events
-                      </Link>
-                    </div>
-                  ) : (
-                    <div className="grid gap-6">
-                      {tickets.map((ticket, i) => (
                         <motion.div
-                          key={ticket._id}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.4 + i * 0.1 }}
-                          className="group relative overflow-hidden glass rounded-3xl border-border flex flex-col md:flex-row shadow-sm hover:shadow-soft transition-all"
+                          initial={{ scale: 0.95, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.95, opacity: 0 }}
+                          className="glass rounded-[2.5rem] p-8 border-border shadow-2xl w-full max-w-md"
                         >
-                          <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
-                          <div className="p-6 md:p-8 flex-1">
-                            <div className="flex items-center gap-3 mb-3">
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-foreground/5 font-bold uppercase tracking-tighter">
-                                {ticket.event.category}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1.5">
-                                <FiCalendar />
-                                {format(new Date(ticket.event.date), "PPP")}
-                              </span>
-                            </div>
-                            <h4 className="text-2xl font-bold mb-2 group-hover:text-emerald-500 transition-colors">
-                              {ticket.event.title}
-                            </h4>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <FiMapPin />
-                              {ticket.event.location}
-                            </div>
+                          <div className="flex items-center justify-between mb-8">
+                            <h2 className="text-2xl font-bold">Update Profile</h2>
+                            <button onClick={() => setIsEditingName(false)} className="p-2 hover:bg-foreground/5 rounded-full transition">
+                              <FiX size={24} />
+                            </button>
                           </div>
-                          <div className="p-6 md:p-8 md:w-64 border-t md:border-t-0 md:border-l border-border bg-foreground/[0.01] flex flex-col justify-center items-center md:items-end">
-                            <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1 text-center md:text-right">
-                              Ticket Code
+
+                          <div className="space-y-6">
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">First Name</label>
+                              <input
+                                type="text"
+                                value={editFirstName}
+                                onChange={(e) => setEditFirstName(e.target.value)}
+                                className="w-full px-5 py-4 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition"
+                              />
                             </div>
-                            <div className="font-mono text-xl font-black tracking-tighter text-foreground mb-4">
-                              {ticket.ticketCode}
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Last Name</label>
+                              <input
+                                type="text"
+                                value={editLastName}
+                                onChange={(e) => setEditLastName(e.target.value)}
+                                className="w-full px-5 py-4 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition"
+                              />
                             </div>
-                            <Link
-                              to="/events/$id"
-                              params={{ id: ticket.event._id }}
-                              className="flex items-center gap-2 text-xs font-bold text-blue-500 hover:underline"
+                            <button
+                              onClick={handleSaveName}
+                              disabled={isSaving}
+                              className="w-full py-4 rounded-2xl bg-foreground text-background font-bold hover:opacity-90 transition shadow-card disabled:opacity-50"
                             >
-                              <FiExternalLink />
-                              View Event Details
-                            </Link>
+                              {isSaving ? "Saving..." : "Save Changes"}
+                            </button>
                           </div>
                         </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* STATS ROW */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.1 }}
+                      className="glass rounded-[2rem] p-8 border-border shadow-soft flex items-center gap-6"
+                    >
+                      <div className="h-14 w-14 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                        <FiCalendar size={28} />
+                      </div>
+                      <div>
+                        <div className="text-3xl font-bold">{dbUser?.createdEvents?.length || 0}</div>
+                        <div className="text-xs text-muted-foreground uppercase tracking-widest font-bold mt-1">Events Hosted</div>
+                      </div>
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.2 }}
+                      className="glass rounded-[2rem] p-8 border-border shadow-soft flex items-center gap-6"
+                    >
+                      <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                        <FiUsers size={28} />
+                      </div>
+                      <div>
+                        <div className="text-3xl font-bold">{tickets.length}</div>
+                        <div className="text-xs text-muted-foreground uppercase tracking-widest font-bold mt-1">Tickets Booked</div>
+                      </div>
+                    </motion.div>
+                  </div>
+
+                  {/* REGISTERED EVENTS / TICKETS */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="glass rounded-[2.5rem] border-border overflow-hidden shadow-soft"
+                  >
+                    <div className="p-8 border-b border-border bg-foreground/[0.02] flex items-center justify-between">
+                      <h3 className="text-xl font-bold flex items-center gap-3">
+                        <FiAward className="text-emerald-500" />
+                        My Digital Tickets
+                      </h3>
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
+                        Showing {tickets.length} Active Tickets
+                      </div>
+                    </div>
+
+                    <div className="p-8">
+                      {tickets.length === 0 ? (
+                        <div className="text-center py-20">
+                          <div className="h-20 w-20 rounded-full bg-foreground/5 flex items-center justify-center mx-auto mb-6">
+                            <FiCalendar size={32} className="text-muted-foreground" />
+                          </div>
+                          <h4 className="text-lg font-bold mb-2">No tickets found</h4>
+                          <p className="text-sm text-muted-foreground mb-8">You haven't registered for any events yet. Discover exciting experiences today!</p>
+                          <Link
+                            to="/events"
+                            className="px-8 py-3 rounded-2xl bg-foreground text-background font-bold hover:opacity-90 transition shadow-card inline-block"
+                          >
+                            Explore Events
+                          </Link>
+                        </div>
+                      ) : (
+                        <div className="grid gap-6">
+                          {tickets.map((ticket, i) => (
+                            <motion.div
+                              key={ticket._id}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.4 + i * 0.1 }}
+                              className="group relative overflow-hidden glass rounded-3xl border-border flex flex-col md:flex-row shadow-sm hover:shadow-soft transition-all"
+                            >
+                              <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
+                              <div className="p-6 md:p-8 flex-1">
+                                <div className="flex items-center gap-3 mb-3">
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-foreground/5 font-bold uppercase tracking-tighter">
+                                    {ticket.event.category}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1.5">
+                                    <FiCalendar />
+                                    {format(new Date(ticket.event.date), "PPP")}
+                                  </span>
+                                </div>
+                                <h4 className="text-2xl font-bold mb-2 group-hover:text-emerald-500 transition-colors">
+                                  {ticket.event.title}
+                                </h4>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <FiMapPin />
+                                  {ticket.event.location}
+                                </div>
+                              </div>
+                              <div className="p-6 md:p-8 md:w-64 border-t md:border-t-0 md:border-l border-border bg-foreground/[0.01] flex flex-col justify-center items-center md:items-end">
+                                <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1 text-center md:text-right">
+                                  Ticket Code
+                                </div>
+                                <div className="font-mono text-xl font-black tracking-tighter text-foreground mb-4">
+                                  {ticket.ticketCode}
+                                </div>
+                                <Link
+                                  to="/events/$id"
+                                  params={{ id: ticket.event._id }}
+                                  className="flex items-center gap-2 text-xs font-bold text-blue-500 hover:underline"
+                                >
+                                  <FiExternalLink />
+                                  View Event Details
+                                </Link>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {dbUser?.notifications.length === 0 ? (
+                    <div className="py-20 text-center glass rounded-[2.5rem] border-border">
+                      <FiBell size={40} className="mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-muted-foreground">No notifications yet.</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4">
+                      {[...(dbUser?.notifications || [])].reverse().map((n) => (
+                        <div
+                          key={n._id}
+                          className={`p-6 rounded-[2rem] glass border-border shadow-soft relative overflow-hidden ${
+                            !n.read ? "bg-foreground/[0.02]" : ""
+                          }`}
+                        >
+                          {!n.read && (
+                            <div className="absolute top-6 left-0 w-1 h-8 bg-blue-500 rounded-r-full" />
+                          )}
+                          <div className="flex items-start gap-4">
+                            <div className={`mt-1 h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
+                              n.type === "success" ? "bg-emerald-500/10 text-emerald-500" :
+                              n.type === "warning" ? "bg-amber-500/10 text-amber-500" :
+                              n.type === "error" ? "bg-rose-500/10 text-rose-500" : "bg-blue-500/10 text-blue-500"
+                            }`}>
+                              {n.type === "success" ? <FiCheckCircle /> : <FiInfo />}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-bold">{n.title}</h4>
+                              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                                {n.message}
+                              </p>
+                              <div className="text-[10px] text-muted-foreground font-medium mt-3 uppercase tracking-widest">
+                                {format(new Date(n.createdAt), "PPp")}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   )}
                 </div>
-              </motion.div>
+              )}
             </div>
           </div>
         </div>

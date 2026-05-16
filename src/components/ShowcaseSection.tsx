@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { FiPlusSquare, FiCheckCircle, FiBarChart2, FiShield, FiX } from "react-icons/fi";
 import { Link } from "@tanstack/react-router";
 import { useAuthModal } from "@/hooks/use-auth-modal";
-import { SignedIn, SignedOut } from "@clerk/clerk-react";
+import { useDbUser } from "@/hooks/use-db-user";
 
 const FEATURE_DATA = [
   {
@@ -150,22 +150,21 @@ export function ShowcaseSection() {
               transition={{ delay: 0.2 }}
               className="mt-10"
             >
-              <SignedOut>
+              {!isSignedIn ? (
                 <button
                   onClick={() => openAuthModal("signup")}
                   className="px-10 py-4 rounded-full bg-black text-white font-bold shadow-xl hover:scale-[1.05] transition-all active:scale-[0.98] inline-block cursor-pointer"
                 >
                   Get Started
                 </button>
-              </SignedOut>
-              <SignedIn>
+              ) : (
                 <Link
                   to="/profile"
                   className="px-10 py-4 rounded-full bg-black text-white font-bold shadow-xl hover:scale-[1.05] transition-all active:scale-[0.98] inline-block"
                 >
                   Dashboard
                 </Link>
-              </SignedIn>
+              )}
             </motion.div>
           </div>
         </div>

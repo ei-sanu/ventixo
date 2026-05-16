@@ -21,7 +21,7 @@ export const env = {
   nodeEnv: process.env.NODE_ENV || "development",
   port: Number(process.env.PORT || 3001),
   mongoUri: process.env.MONGODB_URI || "",
-  clerkSecretKey: process.env.CLERK_SECRET_KEY || "",
+  jwtSecret: process.env.JWT_SECRET || "default_jwt_secret_change_me_in_prod",
   corsOrigins: parseList(process.env.CORS_ORIGIN, ["http://localhost:8080"]),
   adminEmails: parseList(process.env.ADMIN_EMAILS),
   rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
@@ -32,7 +32,6 @@ export const validateEnv = () => {
   const missing = [];
 
   if (!env.mongoUri) missing.push("MONGODB_URI");
-  if (!env.clerkSecretKey) missing.push("CLERK_SECRET_KEY");
 
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(", ")}`);

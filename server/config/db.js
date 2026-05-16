@@ -15,6 +15,8 @@ export const connectDB = async (retryCount = 0) => {
     const connection = await mongoose.connect(env.mongoUri, {
       dbName: "ventixo",
       autoIndex: true,
+      serverSelectionTimeoutMS: 10000, // 10 seconds timeout
+      connectTimeoutMS: 10000,
     });
 
     logger.info(`MongoDB connected: ${connection.connection.host} / ${connection.connection.name}`);
@@ -25,14 +27,16 @@ export const connectDB = async (retryCount = 0) => {
 
     mongoose.connection.on("disconnected", () => {
       logger.warn("MongoDB disconnected. Attempting to reconnect...");
-      connectDB();
+      // Reconnect will be handled by mongoose automatically if configured, 
+      // but we log it here.
     });
   } catch (error) {
     logger.error(`MongoDB connection attempt ${retryCount + 1} failed:`, error.message);
 
     if (retryCount < MAX_RETRIES) {
       logger.info(`Retrying connection in ${RETRY_INTERVAL / 1000} seconds...`);
-      setTimeout(() => connectDB(retryCount + 1), RETRY_INTERVAL);
+      await new Promise((resolve) => setTimeout(resolve, RETRY_INTERVAL));
+      return connectDB(retryCount + 1);
     } else {
       logger.error("Max MongoDB connection retries reached. Exiting...");
       process.exit(1);

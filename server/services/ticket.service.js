@@ -2,7 +2,7 @@ import Ticket from "../models/Ticket.js";
 import { ApiError } from "../utils/ApiError.js";
 import crypto from "crypto";
 
-export const generateTicket = async ({ eventId, userId }) => {
+export const generateTicket = async ({ eventId, userId, registrationDetails }) => {
   const existingTicket = await Ticket.findOne({ event: eventId, user: userId });
   if (existingTicket) {
     return existingTicket;
@@ -14,6 +14,7 @@ export const generateTicket = async ({ eventId, userId }) => {
     event: eventId,
     user: userId,
     ticketCode,
+    registrationDetails,
   });
 
   return ticket;

@@ -1,11 +1,10 @@
-import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { useState } from "react";
 import { FiCalendar, FiMusic, FiShield, FiTrendingUp } from "react-icons/fi";
 import { HiArrowRight } from "react-icons/hi";
-import { AuthModal } from "./AuthModal";
 import { ThreeOrb } from "./ThreeOrb";
+import { useAuthModal } from "@/hooks/use-auth-modal";
+import { useDbUser } from "@/hooks/use-db-user";
 
 const floats = [
   { icon: FiCalendar, label: "Event live", className: "top-[18%] left-[6%]", delay: 0.2 },
@@ -14,10 +13,9 @@ const floats = [
   { icon: FiTrendingUp, label: "+24% sales", className: "bottom-[18%] right-[6%]", delay: 0.8 },
 ];
 
-import { useAuthModal } from "@/hooks/use-auth-modal";
-
 export function HeroSection() {
   const { openAuthModal } = useAuthModal();
+  const { isSignedIn } = useDbUser();
 
   return (
     <>
@@ -71,7 +69,7 @@ export function HeroSection() {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="mt-10 flex items-center gap-3 flex-wrap"
             >
-              <SignedOut>
+              {!isSignedIn ? (
                 <button
                   onClick={() => openAuthModal("signup")}
                   className="group inline-flex items-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-medium shadow-card hover:scale-[1.03] transition"
@@ -79,9 +77,7 @@ export function HeroSection() {
                   Get Started
                   <HiArrowRight className="group-hover:translate-x-1 transition" />
                 </button>
-              </SignedOut>
-
-              <SignedIn>
+              ) : (
                 <Link
                   to="/profile"
                   className="group inline-flex items-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-medium shadow-card hover:scale-[1.03] transition"
@@ -89,7 +85,7 @@ export function HeroSection() {
                   View Profile
                   <HiArrowRight className="group-hover:translate-x-1 transition" />
                 </Link>
-              </SignedIn>
+              )}
 
               <Link
                 to="/events"

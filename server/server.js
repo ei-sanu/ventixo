@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
-import { clerkMiddleware } from "@clerk/express";
+import cookieParser from "cookie-parser";
 import { connectDB } from "./config/db.js";
 import { env, validateEnv } from "./config/env.js";
 import { apiLimiter } from "./middlewares/rateLimiter.middleware.js";
@@ -32,24 +32,20 @@ const corsOptions = {
 };
 
 app.use(
-  clerkMiddleware({
-    authorizedParties: env.corsOrigins.includes("*") ? undefined : env.corsOrigins,
-  }),
-);
-app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-        "script-src": ["'self'", "'unsafe-inline'", "*.clerk.accounts.dev", "clerk.ventixo.com"],
-        "connect-src": ["'self'", "*.clerk.accounts.dev", "clerk.ventixo.com"],
-        "img-src": ["'self'", "data:", "*.clerk.com", "img.clerk.com"],
+        "script-src": ["'self'", "'unsafe-inline'"],
+        "connect-src": ["'self'"],
+        "img-src": ["'self'", "data:"],
       },
     },
   }),
 );
 app.use(cors(corsOptions));
 app.use(compression());
+app.use(cookieParser());
 app.use(express.json({ limit: "500kb" }));
 app.use(express.urlencoded({ extended: true, limit: "500kb" }));
 app.use(sanitizeInput);

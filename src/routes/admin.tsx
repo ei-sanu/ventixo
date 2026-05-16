@@ -1,9 +1,10 @@
-import { useAuth } from "@clerk/clerk-react";
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { FiCheck, FiShield, FiUsers, FiX, FiCalendar, FiClock, FiMapPin, FiUser } from "react-icons/fi";
 import { toast } from "sonner";
+import { useDbUser } from "@/hooks/use-db-user";
+import { getAuthToken } from "@/lib/auth";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
@@ -34,7 +35,7 @@ interface User {
 }
 
 function AdminPage() {
-  const { getToken } = useAuth();
+  const { dbUser, loading: userLoading } = useDbUser();
   const [events, setEvents] = useState<Event[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +44,7 @@ function AdminPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const token = await getToken();
+      const token = getAuthToken();
       const [eventsRes, usersRes] = await Promise.all([
         fetch("/api/admin/events", { headers: { Authorization: `Bearer ${token}` } }),
         fetch("/api/admin/users", { headers: { Authorization: `Bearer ${token}` } }),
@@ -65,12 +66,14 @@ function AdminPage() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, [getToken]);
+    if (!userLoading && dbUser?.role === "admin") {
+      fetchData();
+    }
+  }, [dbUser, userLoading]);
 
   const handleAction = async (eventId: string, action: "approve" | "reject") => {
     try {
-      const token = await getToken();
+      const token = getAuthToken();
       const response = await fetch(`/api/admin/events/${eventId}/${action}`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
@@ -86,7 +89,7 @@ function AdminPage() {
     }
   };
 
-  if (loading) {
+  if (userLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="h-8 w-8 rounded-full border-2 border-foreground/20 border-t-foreground animate-spin" />

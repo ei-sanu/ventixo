@@ -34,13 +34,22 @@ export const getMyEvents = asyncHandler(async (req, res) => {
   });
 });
 
+import Ticket from "../models/Ticket.js";
+
 export const getEventDetails = asyncHandler(async (req, res) => {
   const event = await getEventById(req.params.id);
+  
+  // If the requester is the organizer, fetch tickets to show registration details
+  let tickets = [];
+  if (req.user && String(event.organizer._id) === String(req.user._id)) {
+    tickets = await Ticket.find({ event: event._id }).populate("user", "username email firstName lastName userId");
+  }
 
   return res.status(200).json({
     success: true,
     data: {
       event,
+      tickets,
     },
   });
 });
@@ -49,6 +58,7 @@ export const joinCurrentUserToEvent = asyncHandler(async (req, res) => {
   const event = await joinEvent({
     eventId: req.params.id,
     user: req.user,
+    registrationDetails: req.body.registrationDetails,
   });
 
   return res.status(200).json({

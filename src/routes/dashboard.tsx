@@ -1,4 +1,3 @@
-import { useAuth, useUser } from "@clerk/clerk-react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -21,6 +20,8 @@ import {
 import { PageShell } from "@/components/PageShell";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useDbUser } from "@/hooks/use-db-user";
+import { getAuthToken } from "@/lib/auth";
 
 export const Route = createFileRoute("/dashboard")({
   component: OrganizerDashboard,
@@ -45,25 +46,33 @@ interface ParticipantDetail {
   lastName?: string;
   email: string;
   userId: string;
+  registrationDetails?: {
+    fullName: string;
+    email: string;
+    phone: string;
+    organization: string;
+    socialLink: string;
+    message: string;
+  };
 }
 
 function OrganizerDashboard() {
-  const { isLoaded, user } = useUser();
-  const { getToken } = useAuth();
+  const { dbUser, loading: userLoading } = useDbUser();
   const [events, setEvents] = useState<EventSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [participants, setParticipants] = useState<ParticipantDetail[]>([]);
+  const [selectedParticipant, setSelectedParticipant] = useState<ParticipantDetail | null>(null);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchMyEvents = async (silent = false) => {
-    if (!isLoaded || !user) return;
+    if (!dbUser) return;
     if (!silent) setLoading(true);
     else setIsRefreshing(true);
     
     try {
-      const token = await getToken();
+      const token = getAuthToken();
       const response = await fetch("/api/events/my-events", {
         headers: { 
           Authorization: `Bearer ${token}`,
@@ -85,7 +94,7 @@ function OrganizerDashboard() {
   const handleSyncProfile = async () => {
     setIsRefreshing(true);
     try {
-      const token = await getToken();
+      const token = getAuthToken();
       const response = await fetch("/api/users/sync-events", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
@@ -103,19 +112,31 @@ function OrganizerDashboard() {
 
   useEffect(() => {
     fetchMyEvents();
-  }, [isLoaded, user?.id]);
+  }, [dbUser?.userId]);
 
   const fetchParticipants = async (eventId: string) => {
     setSelectedEventId(eventId);
+    setSelectedParticipant(null);
     setLoadingParticipants(true);
     try {
-      const token = await getToken();
+      const token = getAuthToken();
       const response = await fetch(`/api/events/${eventId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Failed to fetch participants");
       const json = await response.json();
-      setParticipants(json.data.event.participants);
+      
+      // Combine participant user info with their ticket registration details
+      const tickets = json.data.tickets || [];
+      const participantsWithDetails = json.data.event.participants.map((p: any) => {
+        const ticket = tickets.find((t: any) => t.user?._id === p._id || t.user === p._id);
+        return {
+          ...p,
+          registrationDetails: ticket?.registrationDetails
+        };
+      });
+      
+      setParticipants(participantsWithDetails);
     } catch (err) {
       console.error(err);
       toast.error("Could not load participants");
@@ -124,7 +145,7 @@ function OrganizerDashboard() {
     }
   };
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <PageShell>
         <div className="min-h-screen flex items-center justify-center">
@@ -153,7 +174,7 @@ function OrganizerDashboard() {
               </p>
               <div className="mt-4 flex items-center gap-2 text-[10px] bg-foreground/5 w-fit px-3 py-1.5 rounded-full border border-border">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Logged in as <span className="font-bold text-foreground">{user?.primaryEmailAddress?.emailAddress}</span>
+                Logged in as <span className="font-bold text-foreground">{dbUser?.email}</span>
               </div>
             </div>
             
@@ -328,24 +349,74 @@ function OrganizerDashboard() {
                         ) : (
                           <div className="divide-y divide-border">
                             {participants.map((p) => (
-                              <div key={p._id} className="p-4 hover:bg-foreground/[0.02] transition">
+                              <div 
+                                key={p._id} 
+                                className={`p-4 hover:bg-foreground/[0.04] transition cursor-pointer ${selectedParticipant?._id === p._id ? "bg-foreground/[0.03]" : ""}`}
+                                onClick={() => setSelectedParticipant(p)}
+                              >
                                 <div className="flex items-center gap-3">
                                   <div className="h-8 w-8 rounded-full bg-foreground/5 flex items-center justify-center text-[10px] font-bold">
                                     {p.username.charAt(0).toUpperCase()}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="text-xs font-bold truncate">
-                                      {p.firstName ? `${p.firstName} ${p.lastName}` : p.username}
+                                      {p.registrationDetails?.fullName || (p.firstName ? `${p.firstName} ${p.lastName}` : p.username)}
                                     </div>
                                     <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
                                       <FiMail size={10} />
-                                      <span className="truncate">{p.email}</span>
+                                      <span className="truncate">{p.registrationDetails?.email || p.email}</span>
                                     </div>
                                   </div>
-                                  <div className="text-[8px] font-mono bg-foreground/5 px-1.5 py-0.5 rounded text-muted-foreground shrink-0">
-                                    {p.userId}
-                                  </div>
+                                  {p.registrationDetails && (
+                                    <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" title="Form details available" />
+                                  )}
                                 </div>
+
+                                <AnimatePresence>
+                                  {selectedParticipant?._id === p._id && p.registrationDetails && (
+                                    <motion.div
+                                      initial={{ height: 0, opacity: 0 }}
+                                      animate={{ height: "auto", opacity: 1 }}
+                                      exit={{ height: 0, opacity: 0 }}
+                                      className="overflow-hidden"
+                                    >
+                                      <div className="pt-4 mt-4 border-t border-border space-y-3">
+                                        <div className="grid grid-cols-2 gap-4">
+                                          <div>
+                                            <div className="text-[8px] text-muted-foreground uppercase font-bold">Phone</div>
+                                            <div className="text-[10px] font-medium">{p.registrationDetails.phone}</div>
+                                          </div>
+                                          <div>
+                                            <div className="text-[8px] text-muted-foreground uppercase font-bold">Organization</div>
+                                            <div className="text-[10px] font-medium">{p.registrationDetails.organization}</div>
+                                          </div>
+                                        </div>
+                                        {p.registrationDetails.socialLink && (
+                                          <div>
+                                            <div className="text-[8px] text-muted-foreground uppercase font-bold">Social Link</div>
+                                            <a 
+                                              href={p.registrationDetails.socialLink} 
+                                              target="_blank" 
+                                              rel="noreferrer"
+                                              className="text-[10px] text-blue-500 hover:underline truncate block"
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              {p.registrationDetails.socialLink}
+                                            </a>
+                                          </div>
+                                        )}
+                                        {p.registrationDetails.message && (
+                                          <div>
+                                            <div className="text-[8px] text-muted-foreground uppercase font-bold">Message</div>
+                                            <div className="text-[10px] text-muted-foreground italic leading-relaxed">
+                                              "{p.registrationDetails.message}"
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
                               </div>
                             ))}
                           </div>
@@ -357,8 +428,16 @@ function OrganizerDashboard() {
                           <button
                             onClick={() => {
                               const csvContent = "data:text/csv;charset=utf-8," 
-                                + "Name,Username,Email,User ID\n"
-                                + participants.map(p => `${p.firstName || ""} ${p.lastName || ""},${p.username},${p.email},${p.userId}`).join("\n");
+                                + "Name,Email,Phone,Organization,Social Link,Message,Username,User ID\n"
+                                + participants.map(p => {
+                                  const name = p.registrationDetails?.fullName || `${p.firstName || ""} ${p.lastName || ""}`;
+                                  const email = p.registrationDetails?.email || p.email;
+                                  const phone = p.registrationDetails?.phone || "";
+                                  const org = p.registrationDetails?.organization || "";
+                                  const social = p.registrationDetails?.socialLink || "";
+                                  const msg = (p.registrationDetails?.message || "").replace(/,/g, " ");
+                                  return `${name},${email},${phone},${org},${social},${msg},${p.username},${p.userId}`;
+                                }).join("\n");
                               const encodedUri = encodeURI(csvContent);
                               const link = document.createElement("a");
                               link.setAttribute("href", encodedUri);
@@ -370,7 +449,7 @@ function OrganizerDashboard() {
                             className="w-full py-3 rounded-xl glass border-border text-xs font-bold flex items-center justify-center gap-2 hover:bg-foreground/5 transition"
                           >
                             <FiActivity size={14} />
-                            Export CSV List
+                            Export Full CSV List
                           </button>
                         </div>
                       )}

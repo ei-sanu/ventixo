@@ -1,4 +1,3 @@
-import { useAuth } from "@clerk/clerk-react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -20,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useDbUser } from "@/hooks/use-db-user";
+import { getAuthToken } from "@/lib/auth";
 
 export const Route = createFileRoute("/analytics")({
   component: AdminPanel,
@@ -51,7 +51,6 @@ interface User {
 }
 
 function AdminPanel() {
-  const { getToken } = useAuth();
   const { dbUser, loading: userLoading } = useDbUser();
   const navigate = useNavigate();
   const [tab, setTab] = useState<"events" | "users">("events");
@@ -70,7 +69,7 @@ function AdminPanel() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const token = await getToken();
+      const token = getAuthToken();
       const endpoint = tab === "events" ? "/api/admin/events" : "/api/admin/users";
       const response = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
@@ -96,7 +95,7 @@ function AdminPanel() {
 
   const handleAction = async (eventId: string, action: "approve" | "reject") => {
     try {
-      const token = await getToken();
+      const token = getAuthToken();
       const response = await fetch(`/api/admin/events/${eventId}/${action}`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },

@@ -29,6 +29,14 @@ const ticketSchema = new mongoose.Schema(
     validatedAt: {
       type: Date,
     },
+    registrationDetails: {
+      fullName: String,
+      email: String,
+      phone: String,
+      organization: String,
+      socialLink: String,
+      message: String,
+    },
     createdAt: {
       type: Date,
       default: Date.now,

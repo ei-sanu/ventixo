@@ -41,6 +41,8 @@ export const errorHandler = (error, req, res, _next) => {
       path: req.originalUrl,
       stack: error.stack,
     });
+    // Also log to console.error directly for visibility
+    console.error(`[Error] ${req.method} ${req.path} failed:`, error);
   }
 
   return res.status(statusCode).json({

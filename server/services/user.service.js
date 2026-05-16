@@ -1,5 +1,5 @@
-import { clerkClient } from "@clerk/express";
 import User from "../models/User.js";
+import Event from "../models/Event.js";
 import { env } from "../config/env.js";
 import { ApiError } from "../utils/ApiError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
@@ -37,7 +37,7 @@ const buildBaseUsername = ({ providedUsername, email }) => {
   return DEFAULT_USERNAME;
 };
 
-const resolveUniqueUsername = async (baseUsername, clerkId) => {
+const resolveUniqueUsername = async (baseUsername) => {
   const normalizedBase = normalizeUsername(baseUsername) || DEFAULT_USERNAME;
   const maxAttempts = 25;
 
@@ -47,7 +47,6 @@ const resolveUniqueUsername = async (baseUsername, clerkId) => {
     const candidate = `${normalizedBase.slice(0, maxBaseLength)}${suffix}`;
     const takenByAnotherUser = await User.exists({
       username: candidate,
-      clerkId: { $ne: clerkId },
     });
 
     if (!takenByAnotherUser) {
@@ -58,42 +57,14 @@ const resolveUniqueUsername = async (baseUsername, clerkId) => {
   throw new ApiError(409, "Unable to find an available username");
 };
 
-const getPrimaryEmail = (clerkUser) => {
-  if (clerkUser.primaryEmailAddress?.emailAddress) {
-    return clerkUser.primaryEmailAddress.emailAddress;
-  }
-
-  return clerkUser.emailAddresses?.[0]?.emailAddress || null;
-};
-
-export const syncUser = async ({ clerkId, username: providedUsername }) => {
-  const clerkUser = await clerkClient.users.getUser(clerkId);
-  const email = getPrimaryEmail(clerkUser);
-
-  if (!email) {
-    throw new ApiError(422, "A verified email address is required to create a profile");
-  }
-
-  console.log(`[Sync] Syncing user: ${email}, isAdmin: ${isAdmin(email)}, adminEmails: ${env.adminEmails}`);
-
-  const existingUser = await User.findOne({ clerkId });
-
-  if (existingUser) {
-    existingUser.email = email;
-    existingUser.role = isAdmin(email) ? "admin" : existingUser.role;
-
-    const requestedUsername = normalizeUsername(providedUsername);
-    if (requestedUsername && requestedUsername !== existingUser.username) {
-      existingUser.username = await resolveUniqueUsername(requestedUsername, clerkId);
-    }
-
-    await existingUser.save();
-    return { user: existingUser, created: false };
+export const register = async ({ email, password, username: providedUsername, firstName, lastName }) => {
+  const existingEmail = await User.findOne({ email });
+  if (existingEmail) {
+    throw new ApiError(400, "Email already in use");
   }
 
   const username = await resolveUniqueUsername(
-    buildBaseUsername({ providedUsername, email }),
-    clerkId,
+    providedUsername || buildBaseUsername({ providedUsername, email }),
   );
 
   const maxAttempts = 5;
@@ -102,33 +73,20 @@ export const syncUser = async ({ clerkId, username: providedUsername }) => {
     try {
       const userId = await generateUserId();
       const user = await User.create({
-        clerkId,
         username,
         userId,
         email,
+        password,
+        firstName: firstName || "",
+        lastName: lastName || "",
         role: isAdmin(email) ? "admin" : "user",
       });
 
-      return { user, created: true };
+      return user;
     } catch (error) {
       if (error?.code === 11000 && error?.keyPattern?.userId) {
         continue;
       }
-
-      if (error?.code === 11000 && error?.keyPattern?.username) {
-        const resolvedUsername = await resolveUniqueUsername(`${username}_${attempt + 1}`, clerkId);
-        const userId = await generateUserId();
-        const user = await User.create({
-          clerkId,
-          username: resolvedUsername,
-          userId,
-          email,
-          role: isAdmin(email) ? "admin" : "user",
-        });
-
-        return { user, created: true };
-      }
-
       throw error;
     }
   }
@@ -136,9 +94,17 @@ export const syncUser = async ({ clerkId, username: providedUsername }) => {
   throw new ApiError(500, "Unable to create a unique user profile");
 };
 
+export const login = async ({ email, password }) => {
+  const user = await User.findOne({ email }).select("+password");
+  if (!user || !(await user.comparePassword(password))) {
+    throw new ApiError(401, "Invalid email or password");
+  }
+  return user;
+};
+
 export const getUserProfile = async (userId) => {
-  const user = await User.findById(userId)
-    .select("username userId email firstName lastName role createdEvents joinedEvents createdAt")
+  const user = await User.findOne({ userId })
+    .select("username userId email firstName lastName role createdEvents joinedEvents notifications createdAt")
     .populate({
       path: "createdEvents",
       select: "title category teamType status isPublished date location createdAt",
@@ -155,17 +121,12 @@ export const getUserProfile = async (userId) => {
   return user;
 };
 
-export const updateUserProfile = async (userId, { firstName, lastName }) => {
+export const updateUserProfile = async (id, updates) => {
   const user = await User.findByIdAndUpdate(
-    userId,
-    {
-      $set: {
-        ...(firstName !== undefined && { firstName: firstName.trim() }),
-        ...(lastName !== undefined && { lastName: lastName.trim() }),
-      },
-    },
+    id,
+    updates,
     { new: true },
-  ).select("username userId email firstName lastName role createdEvents joinedEvents createdAt");
+  ).select("username userId email firstName lastName role createdEvents joinedEvents notifications createdAt");
 
   if (!user) {
     throw new ApiError(404, "User not found");

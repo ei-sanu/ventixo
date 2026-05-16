@@ -13,6 +13,13 @@ export const createEvent = async ({ organizer, payload }) => {
 
   await User.findByIdAndUpdate(organizer._id, {
     $addToSet: { createdEvents: event._id },
+    $push: {
+      notifications: {
+        title: "Event Created",
+        message: `Your event "${event.title}" has been submitted for approval.`,
+        type: "info",
+      },
+    },
   });
 
   return Event.findById(event._id).populate("organizer", "username userId email");
@@ -38,7 +45,7 @@ export const getEventById = async (eventId) => {
   return event;
 };
 
-export const joinEvent = async ({ eventId, user }) => {
+export const joinEvent = async ({ eventId, user, registrationDetails }) => {
   const event = await Event.findById(eventId);
 
   if (!event) {
@@ -85,9 +92,16 @@ export const joinEvent = async ({ eventId, user }) => {
 
   await User.findByIdAndUpdate(user._id, {
     $addToSet: { joinedEvents: event._id },
+    $push: {
+      notifications: {
+        title: "Registration Successful",
+        message: `You have successfully registered for ${event.title}. Your ticket is now available in your profile.`,
+        type: "success",
+      },
+    },
   });
 
-  await generateTicket({ eventId: event._id, userId: user._id });
+  await generateTicket({ eventId: event._id, userId: user._id, registrationDetails });
 
   return updatedEvent;
 };

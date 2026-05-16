@@ -12,10 +12,20 @@ export const notFoundHandler = (req, _res, next) => {
   next(new ApiError(404, `Route not found: ${req.method} ${req.originalUrl}`));
 };
 
-export const errorHandler = (error, req, res, _next) => {
+export const errorHandler = (error, req, res, next) => {
   let statusCode = error.statusCode || 500;
   let message = error.message || "Internal server error";
   let details = error.details || null;
+
+  // Log all errors in development to catch "next is not a function"
+  if (env.nodeEnv === "development") {
+    console.error(`[ErrorHandler] Error caught:`, {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      statusCode
+    });
+  }
 
   if (error instanceof mongoose.Error.ValidationError) {
     statusCode = 400;
@@ -36,13 +46,14 @@ export const errorHandler = (error, req, res, _next) => {
     message = duplicateKeyMessage(error);
   }
 
-  if (statusCode >= 500) {
+  if (statusCode >= 500 || env.nodeEnv === "development") {
     logger.error(message, {
       method: req?.method,
       path: req?.originalUrl,
       stack: error.stack,
+      details: details || error.message,
     });
-    console.error(`[Error] ${req?.method} ${req?.path} failed:`, error);
+    console.error(`[Error] ${req?.method} ${req?.originalUrl} failed (${statusCode}):`, error);
   }
 
   return res.status(statusCode).json({

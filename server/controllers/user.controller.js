@@ -5,6 +5,7 @@ import {
   login,
 } from "../services/user.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env.js";
 
@@ -25,6 +26,19 @@ const generateToken = (res, userId) => {
 
 export const registerUser = asyncHandler(async (req, res) => {
   const { email, password, username, firstName, lastName } = req.body;
+
+  // Basic validation
+  if (!email || !password) {
+    throw new ApiError(400, "Email and password are required");
+  }
+
+  if (password.length < 8) {
+    throw new ApiError(400, "Password must be at least 8 characters long");
+  }
+
+  if (username && (username.length < 3 || username.length > 30)) {
+    throw new ApiError(400, "Username must be between 3 and 30 characters");
+  }
 
   const user = await register({ email, password, username, firstName, lastName });
 

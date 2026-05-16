@@ -18,7 +18,9 @@ export function AuthModal({ isOpen, onClose, initialMode = "signin" }: AuthModal
 
   // Sync mode with initialMode when modal opens
   useEffect(() => {
-    if (isOpen) setMode(initialMode);
+    if (isOpen) {
+      setMode(initialMode);
+    }
   }, [isOpen, initialMode]);
 
   // Prevent background scroll when modal is open
@@ -107,17 +109,24 @@ function CustomAuthPanel({
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { refreshDbUser } = useDbUser();
+
+  // Clear error when mode changes
+  useEffect(() => {
+    setError(null);
+  }, [mode]);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
       const endpoint = mode === "signin" ? "/api/users/login" : "/api/users/register";
-      const body = mode === "signin" 
-        ? { email, password } 
+      const body = mode === "signin"
+        ? { email, password }
         : { email, password, username };
 
       const response = await fetch(endpoint, {
@@ -143,11 +152,15 @@ function CustomAuthPanel({
         onSuccess();
         navigate({ to: "/profile" });
       } else {
-        toast.error(data.message || "Authentication failed");
+        const errorMsg = data.message || "Authentication failed";
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (err) {
       console.error("Auth error:", err);
-      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      const errorMsg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -156,6 +169,12 @@ function CustomAuthPanel({
   return (
     <div className="space-y-6">
       <form onSubmit={handleEmailAuth} className="space-y-4">
+        {error && (
+          <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-medium animate-in fade-in slide-in-from-top-1">
+            {error}
+          </div>
+        )}
+
         {mode === "signup" && (
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground ml-1">Username</label>
@@ -165,7 +184,7 @@ function CustomAuthPanel({
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="johndoe"
+                placeholder="username"
                 className="w-full pl-11 pr-4 py-3 rounded-xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm"
                 required={mode === "signup"}
               />

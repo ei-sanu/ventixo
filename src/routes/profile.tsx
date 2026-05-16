@@ -111,7 +111,7 @@ function ProfilePage() {
 
   useEffect(() => {
     fetchUserData();
-  }, [isLoaded, user, getToken]);
+  }, [dbUser, userLoading]);
 
   const markNotificationsRead = async () => {
     if (!dbUser?.notifications.some(n => !n.read)) return;

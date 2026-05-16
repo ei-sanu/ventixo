@@ -4,8 +4,6 @@ import eventRoutes from "./event.routes.js";
 import userRoutes from "./user.routes.js";
 import ticketRoutes from "./ticket.routes.js";
 import analyticsRoutes from "./analytics.routes.js";
-import { updateCurrentUserProfile } from "../controllers/user.controller.js";
-import { attachUser, requireAuth } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
@@ -16,9 +14,6 @@ router.get("/health", (_req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
-
-// Explicitly define this route here to ensure it's matched
-router.patch("/users/me", requireAuth, attachUser, updateCurrentUserProfile);
 
 router.use("/users", userRoutes);
 router.use("/events", eventRoutes);

@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "server": "node server.js",
+    "server": "node --watch server.js",
     "server:dev": "node --watch server.js"
   },
   "dependencies": {

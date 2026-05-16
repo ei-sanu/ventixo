@@ -14,8 +14,13 @@ import {
   FiAlertCircle,
   FiX,
   FiArrowRight,
+  FiMail,
+  FiPhone,
+  FiPlus,
+  FiTrash2,
 } from "react-icons/fi";
 import { PageShell } from "@/components/PageShell";
+import { CountryCodeSelector } from "@/components/CountryCodeSelector";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useAuthModal } from "@/hooks/use-auth-modal";
@@ -72,15 +77,23 @@ function EventDetailsPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // REGISTRATION STEPS
+  const [step, setStep] = useState(1);
+
   // FORM STATE
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
+    countryCode: "+91",
     phone: "",
     organization: "",
     socialLink: "",
     message: "",
+    teamName: "",
+    teamType: "Solo",
   });
+
+  const [members, setMembers] = useState<Array<{ email: string; userId?: string }>>([]);
 
   useEffect(() => {
     if (dbUser) {
@@ -99,6 +112,8 @@ function EventDetailsPage() {
         if (!response.ok) throw new Error("Event not found");
         const json = await response.json();
         setEvent(json.data.event);
+        // Default team type to event's max team type
+        setFormData(prev => ({ ...prev, teamType: json.data.event.teamType }));
       } catch (err) {
         console.error(err);
         toast.error("Could not load event details");
@@ -110,9 +125,25 @@ function EventDetailsPage() {
     fetchEventDetails();
   }, [id]);
 
+  // Handle Team Size Change
+  useEffect(() => {
+    const size = formData.teamType === "Solo" ? 0 : 
+                 formData.teamType === "Duo" ? 1 : 
+                 formData.teamType === "Trio" ? 2 : 3;
+    
+    setMembers(prev => {
+      const newMembers = [...prev];
+      if (newMembers.length < size) {
+        while (newMembers.length < size) newMembers.push({ email: "" });
+      } else {
+        return newMembers.slice(0, size);
+      }
+      return newMembers;
+    });
+  }, [formData.teamType]);
+
   // SEPARATE EFFECT FOR AUTO-REGISTRATION TRIGGER
   useEffect(() => {
-    // Determine if we should trigger registration
     const rawRegister = searchParams.register;
     const isRegisterRequested = 
       rawRegister === true || 
@@ -120,7 +151,6 @@ function EventDetailsPage() {
       (typeof rawRegister === "string" && rawRegister.toLowerCase().includes("true"));
 
     if (!isRegisterRequested) return;
-
     if (!event || userLoading) return;
 
     const isOrg = dbUser?.username && event.organizer.username === dbUser.username;
@@ -143,7 +173,6 @@ function EventDetailsPage() {
       openAuthModal("signin");
       return;
     }
-
     setShowConfirm(true);
   };
 
@@ -151,6 +180,19 @@ function EventDetailsPage() {
     if (!formData.fullName || !formData.phone || !formData.organization) {
       toast.error("Please fill in all required fields");
       return;
+    }
+
+    if (formData.teamType !== "Solo" && !formData.teamName) {
+      toast.error("Team name is required for team registration");
+      return;
+    }
+
+    // Validate members
+    for (const member of members) {
+      if (!member.email) {
+        toast.error("Please provide emails for all team members");
+        return;
+      }
     }
 
     setIsJoining(true);
@@ -163,7 +205,11 @@ function EventDetailsPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          registrationDetails: formData,
+          registrationDetails: {
+            ...formData,
+            phone: `${formData.countryCode} ${formData.phone}`
+          },
+          members: members
         }),
       });
 
@@ -176,7 +222,6 @@ function EventDetailsPage() {
       setShowSuccess(true);
       toast.success("Registered successfully!");
       
-      // Refresh event details
       const updatedResponse = await fetch(`/api/events/${id}`);
       const updatedJson = await updatedResponse.json();
       setEvent(updatedJson.data.event);
@@ -214,6 +259,12 @@ function EventDetailsPage() {
   const isOrganizer = dbUser?.username && event.organizer.username === dbUser.username;
   const isParticipant = dbUser?.username && event.participants.some((p) => p.username === dbUser.username);
   const isFull = event.participants.length >= event.maxParticipants;
+
+  const maxTeamSize = event.teamType === "Solo" ? 1 : 
+                    event.teamType === "Duo" ? 2 : 
+                    event.teamType === "Trio" ? 3 : 4;
+
+  const teamTypeOptions = ["Solo", "Duo", "Trio", "Quadra"].slice(0, maxTeamSize);
 
   return (
     <PageShell>
@@ -384,7 +435,7 @@ function EventDetailsPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setShowConfirm(false)}
+              onClick={() => { if (!isJoining) setShowConfirm(false); }}
               className="absolute inset-0 bg-background/80 backdrop-blur-sm"
             />
             <motion.div
@@ -395,7 +446,8 @@ function EventDetailsPage() {
             >
               <button
                 onClick={() => setShowConfirm(false)}
-                className="absolute top-6 right-6 p-2 rounded-full hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition-colors"
+                disabled={isJoining}
+                className="absolute top-6 right-6 p-2 rounded-full hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
               >
                 <FiX size={20} />
               </button>
@@ -408,102 +460,216 @@ function EventDetailsPage() {
                 <p className="text-sm text-muted-foreground mt-2">
                   Complete the form below to register for <strong>{event.title}</strong>.
                 </p>
+                
+                {/* STEP INDICATOR */}
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <div className={`h-1.5 w-8 rounded-full transition-colors ${step === 1 ? "bg-foreground" : "bg-foreground/10"}`} />
+                  <div className={`h-1.5 w-8 rounded-full transition-colors ${step === 2 ? "bg-foreground" : "bg-foreground/10"}`} />
+                </div>
               </div>
 
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.fullName}
-                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                    placeholder="Enter your full name"
-                    className="w-full px-5 py-3 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm"
-                  />
-                </div>
+              <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-2 custom-scrollbar">
+                {step === 1 ? (
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="space-y-4"
+                  >
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Full Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.fullName}
+                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                        placeholder="somesh2511"
+                        className="w-full px-5 py-3 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm"
+                      />
+                    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Email Address *</label>
-                    <input
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="name@example.com"
-                      className="w-full px-5 py-3 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Phone Number *</label>
-                    <input
-                      type="tel"
-                      required
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="+1 (555) 000-0000"
-                      className="w-full px-5 py-3 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm"
-                    />
-                  </div>
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Email Address *</label>
+                        <input
+                          type="email"
+                          required
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          placeholder="biswalranjansomesh@gmail.com"
+                          className="w-full px-5 py-3 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Phone Number *</label>
+                        <div className="flex gap-2">
+                          <CountryCodeSelector 
+                            value={formData.countryCode} 
+                            onChange={(code) => setFormData({ ...formData, countryCode: code })} 
+                          />
+                          <input
+                            type="tel"
+                            required
+                            value={formData.phone}
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            placeholder="00000 00000"
+                            className="flex-1 px-5 py-3 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">College / Organization *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.organization}
-                    onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
-                    placeholder="University or Company name"
-                    className="w-full px-5 py-3 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm"
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">College / Organization *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.organization}
+                        onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                        placeholder="University or Company name"
+                        className="w-full px-5 py-3 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm"
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">GitHub / LinkedIn (Optional)</label>
-                  <input
-                    type="url"
-                    value={formData.socialLink}
-                    onChange={(e) => setFormData({ ...formData, socialLink: e.target.value })}
-                    placeholder="https://github.com/username"
-                    className="w-full px-5 py-3 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm"
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">GitHub / LinkedIn (Optional)</label>
+                      <input
+                        type="url"
+                        value={formData.socialLink}
+                        onChange={(e) => setFormData({ ...formData, socialLink: e.target.value })}
+                        placeholder="https://github.com/username"
+                        className="w-full px-5 py-3 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm"
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Why do you want to join? (Optional)</label>
-                  <textarea
-                    value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    placeholder="Briefly describe your interest..."
-                    className="w-full px-5 py-3 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm min-h-[80px] resize-none"
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Why do you want to join? (Optional)</label>
+                      <textarea
+                        value={formData.message}
+                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                        placeholder="Briefly describe your interest..."
+                        className="w-full px-5 py-3 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm min-h-[80px] resize-none"
+                      />
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="space-y-6"
+                  >
+                    <div className="space-y-4">
+                      <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Registration Type</label>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {teamTypeOptions.map((opt) => (
+                          <button
+                            key={opt}
+                            onClick={() => setFormData({ ...formData, teamType: opt })}
+                            className={`py-3 rounded-xl border transition-all text-xs font-bold ${
+                              formData.teamType === opt 
+                                ? "bg-foreground text-background border-foreground" 
+                                : "glass border-border text-muted-foreground hover:bg-foreground/5"
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {formData.teamType !== "Solo" && (
+                      <>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Team Name *</label>
+                          <input
+                            type="text"
+                            required
+                            value={formData.teamName}
+                            onChange={(e) => setFormData({ ...formData, teamName: e.target.value })}
+                            placeholder="Awesome Squad"
+                            className="w-full px-5 py-3 rounded-2xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm"
+                          />
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between ml-1">
+                            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Team Members</label>
+                            <span className="text-[10px] text-muted-foreground">Leader: {dbUser?.username}</span>
+                          </div>
+                          
+                          {members.map((member, idx) => (
+                            <div key={idx} className="space-y-2 p-4 rounded-2xl glass border-border">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] font-bold text-foreground/40">Member #{idx + 2}</span>
+                              </div>
+                              <div className="grid grid-cols-1 gap-3">
+                                <div className="relative">
+                                  <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+                                  <input
+                                    type="email"
+                                    required
+                                    value={member.email}
+                                    onChange={(e) => {
+                                      const newMembers = [...members];
+                                      newMembers[idx].email = e.target.value;
+                                      setMembers(newMembers);
+                                    }}
+                                    placeholder="Member Email or User ID"
+                                    className="w-full pl-11 pr-4 py-3 rounded-xl glass border-border focus:ring-2 focus:ring-foreground/10 outline-none transition text-sm"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </motion.div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3 mt-8">
                 <button
-                  onClick={() => setShowConfirm(false)}
+                  onClick={() => {
+                    if (step === 1) setShowConfirm(false);
+                    else setStep(1);
+                  }}
                   disabled={isJoining}
                   className="w-full py-4 rounded-2xl glass border-border font-bold hover:bg-foreground/5 transition"
                 >
-                  Cancel
+                  {step === 1 ? "Cancel" : "Back"}
                 </button>
-                <button
-                  onClick={confirmJoin}
-                  disabled={isJoining}
-                  className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-foreground text-background font-bold hover:opacity-90 transition shadow-card disabled:opacity-50"
-                >
-                  {isJoining ? (
-                    <div className="h-5 w-5 rounded-full border-2 border-background/20 border-t-background animate-spin" />
-                  ) : (
-                    <>
-                      Complete Registration
-                      <FiArrowRight />
-                    </>
-                  )}
-                </button>
+                {step === 1 ? (
+                  <button
+                    onClick={() => {
+                      if (!formData.fullName || !formData.phone || !formData.organization) {
+                        toast.error("Please fill in all required fields");
+                        return;
+                      }
+                      setStep(2);
+                    }}
+                    className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-foreground text-background font-bold hover:opacity-90 transition shadow-card"
+                  >
+                    Next Step
+                    <FiArrowRight />
+                  </button>
+                ) : (
+                  <button
+                    onClick={confirmJoin}
+                    disabled={isJoining}
+                    className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-foreground text-background font-bold hover:opacity-90 transition shadow-card disabled:opacity-50"
+                  >
+                    {isJoining ? (
+                      <div className="h-5 w-5 rounded-full border-2 border-background/20 border-t-background animate-spin" />
+                    ) : (
+                      <>
+                        Complete Registration
+                        <FiArrowRight />
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </motion.div>
           </div>
@@ -533,6 +699,11 @@ function EventDetailsPage() {
               <h2 className="text-3xl font-bold tracking-tight mb-2">You're In!</h2>
               <p className="text-muted-foreground mb-8">
                 Your registration for <strong>{event.title}</strong> is confirmed. 
+                {formData.teamType !== "Solo" && (
+                  <span className="block mt-2 font-bold text-foreground">
+                    Team: {formData.teamName}
+                  </span>
+                )}
                 Your ticket is now available in your profile.
               </p>
 
@@ -558,4 +729,3 @@ function EventDetailsPage() {
     </PageShell>
   );
 }
-

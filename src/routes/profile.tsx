@@ -26,6 +26,7 @@ import {
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { PageShell } from "@/components/PageShell";
+import { TicketUI } from "@/components/TicketUI";
 import { useDbUser } from "@/hooks/use-db-user";
 import { getAuthToken } from "@/lib/auth";
 
@@ -43,13 +44,23 @@ interface Ticket {
   _id: string;
   ticketCode: string;
   status: string;
+  registrationDetails: {
+    fullName: string;
+    email: string;
+    teamName?: string;
+    teamId?: string;
+    phone?: string;
+    organization?: string;
+  };
   event: {
     _id: string;
     title: string;
     date: string;
     location: string;
     category: string;
+    teamType: string;
   };
+  createdAt: string;
 }
 
 interface Notification {
@@ -58,20 +69,6 @@ interface Notification {
   message: string;
   type: "info" | "success" | "warning" | "error";
   read: boolean;
-  createdAt: string;
-}
-
-interface UserData {
-  _id: string;
-  username: string;
-  userId: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-  createdEvents: any[];
-  joinedEvents: any[];
-  notifications: Notification[];
   createdAt: string;
 }
 
@@ -463,50 +460,16 @@ function ProfilePage() {
                           </Link>
                         </div>
                       ) : (
-                        <div className="grid gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                           {tickets.map((ticket, i) => (
                             <motion.div
                               key={ticket._id}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: 0.4 + i * 0.1 }}
-                              className="group relative overflow-hidden glass rounded-3xl border-border flex flex-col md:flex-row shadow-sm hover:shadow-soft transition-all"
+                              className="flex justify-center"
                             >
-                              <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
-                              <div className="p-6 md:p-8 flex-1">
-                                <div className="flex items-center gap-3 mb-3">
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-foreground/5 font-bold uppercase tracking-tighter">
-                                    {ticket.event.category}
-                                  </span>
-                                  <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1.5">
-                                    <FiCalendar />
-                                    {format(new Date(ticket.event.date), "PPP")}
-                                  </span>
-                                </div>
-                                <h4 className="text-2xl font-bold mb-2 group-hover:text-emerald-500 transition-colors">
-                                  {ticket.event.title}
-                                </h4>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <FiMapPin />
-                                  {ticket.event.location}
-                                </div>
-                              </div>
-                              <div className="p-6 md:p-8 md:w-64 border-t md:border-t-0 md:border-l border-border bg-foreground/[0.01] flex flex-col justify-center items-center md:items-end">
-                                <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1 text-center md:text-right">
-                                  Ticket Code
-                                </div>
-                                <div className="font-mono text-xl font-black tracking-tighter text-foreground mb-4">
-                                  {ticket.ticketCode}
-                                </div>
-                                <Link
-                                  to="/events/$id"
-                                  params={{ id: ticket.event._id }}
-                                  className="flex items-center gap-2 text-xs font-bold text-blue-500 hover:underline"
-                                >
-                                  <FiExternalLink />
-                                  View Event Details
-                                </Link>
-                              </div>
+                              <TicketUI ticket={ticket as any} />
                             </motion.div>
                           ))}
                         </div>

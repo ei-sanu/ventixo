@@ -1,7 +1,9 @@
 import Event from "../models/Event.js";
 import User from "../models/User.js";
+import Team from "../models/Team.js";
 import { ApiError } from "../utils/ApiError.js";
 import { generateTicket } from "./ticket.service.js";
+import { generateTeamId } from "../utils/generateTeamId.js";
 
 export const createEvent = async ({ organizer, payload }) => {
   const event = await Event.create({
@@ -45,7 +47,7 @@ export const getEventById = async (eventId) => {
   return event;
 };
 
-export const joinEvent = async ({ eventId, user, registrationDetails }) => {
+export const joinEvent = async ({ eventId, user, registrationDetails, members = [] }) => {
   const event = await Event.findById(eventId);
 
   if (!event) {
@@ -60,50 +62,97 @@ export const joinEvent = async ({ eventId, user, registrationDetails }) => {
     throw new ApiError(409, "Event is not open for joining");
   }
 
-  const alreadyJoined = event.participants.some(
-    (participantId) => String(participantId) === String(user._id),
-  );
+  const teamType = registrationDetails.teamType || "Solo";
+  const teamName = registrationDetails.teamName || `${user.username}'s Team`;
+  
+  // Basic members check
+  const allMembers = [
+    { email: user.email, userId: user.userId, user: user._id, status: "registered" },
+    ...members
+  ];
 
-  if (alreadyJoined) {
-    throw new ApiError(409, "User already joined this event");
+  if (allMembers.length > event.maxParticipants) {
+    throw new ApiError(400, `Team exceeds event limit of ${event.maxParticipants}`);
   }
 
-  if (event.participants.length >= event.maxParticipants) {
-    throw new ApiError(409, "Event has reached maximum participants");
-  }
-
-  const updatedEvent = await Event.findOneAndUpdate(
-    {
-      _id: event._id,
-      participants: { $ne: user._id },
-      $expr: { $lt: [{ $size: "$participants" }, "$maxParticipants"] },
-    },
-    {
-      $addToSet: { participants: user._id },
-    },
-    { new: true, runValidators: true },
-  )
-    .select("title category teamType maxParticipants participants status isPublished date location")
-    .populate("participants", "username userId");
-
-  if (!updatedEvent) {
-    throw new ApiError(409, "Event cannot be joined at this time");
-  }
-
-  await User.findByIdAndUpdate(user._id, {
-    $addToSet: { joinedEvents: event._id },
-    $push: {
-      notifications: {
-        title: "Registration Successful",
-        message: `You have successfully registered for ${event.title}. Your ticket is now available in your profile.`,
-        type: "success",
-      },
-    },
+  // Check if anyone in this team is already registered for this event
+  const memberEmails = allMembers.map(m => m.email.toLowerCase());
+  const existingTeams = await Team.find({
+    event: eventId,
+    "members.email": { $in: memberEmails }
   });
 
-  await generateTicket({ eventId: event._id, userId: user._id, registrationDetails });
+  if (existingTeams.length > 0) {
+    throw new ApiError(400, "One or more members are already registered for this event");
+  }
 
-  return updatedEvent;
+  const teamId = await generateTeamId();
+  
+  // Resolve existing users for all members
+  const resolvedMembers = await Promise.all(allMembers.map(async (m) => {
+    if (m.user) return m; // Already resolved (leader)
+    
+    const query = {};
+    if (m.userId) query.userId = m.userId;
+    else query.email = m.email.toLowerCase();
+
+    const existingUser = await User.findOne(query);
+    return {
+      ...m,
+      user: existingUser ? existingUser._id : undefined,
+      email: m.email.toLowerCase(),
+      status: existingUser ? "registered" : "pending"
+    };
+  }));
+
+  const team = await Team.create({
+    name: teamName,
+    teamId,
+    event: eventId,
+    leader: user._id,
+    members: resolvedMembers,
+    teamType
+  });
+
+  // Create tickets for all resolved users
+  const tickets = await Promise.all(resolvedMembers.filter(m => m.user).map(async (m) => {
+    const ticket = await generateTicket({
+      eventId,
+      userId: m.user,
+      registrationDetails: {
+        ...registrationDetails,
+        email: m.email,
+        teamId,
+        teamName
+      }
+    });
+    
+    // Link ticket to team
+    ticket.team = team._id;
+    await ticket.save();
+
+    // Update User joinedEvents
+    await User.findByIdAndUpdate(m.user, {
+      $addToSet: { joinedEvents: eventId },
+      $push: {
+        notifications: {
+          title: "Registration Successful",
+          message: `You have been added to team "${teamName}" for ${event.title}.`,
+          type: "success",
+        },
+      },
+    });
+
+    return ticket;
+  }));
+
+  // Update Event participants with all registered users
+  const registeredUserIds = resolvedMembers.filter(m => m.user).map(m => m.user);
+  await Event.findByIdAndUpdate(eventId, {
+    $addToSet: { participants: { $each: registeredUserIds } }
+  });
+
+  return { team, tickets };
 };
 
 export const getOngoingEvents = async () => {

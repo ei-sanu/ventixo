@@ -1,7 +1,9 @@
 import User from "../models/User.js";
 import Event from "../models/Event.js";
+import Team from "../models/Team.js";
 import { env } from "../config/env.js";
 import { ApiError } from "../utils/ApiError.js";
+import { generateTicket } from "./ticket.service.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 import { generateUserId } from "../utils/generateUserId.js";
 
@@ -81,6 +83,9 @@ export const register = async ({ email, password, username: providedUsername, fi
         lastName: lastName || "",
         role: isAdmin(email) ? "admin" : "user",
       });
+
+      // Auto-link pending team registrations
+      await linkPendingTeamRegistrations(user);
 
       return user;
     } catch (error) {
@@ -176,4 +181,59 @@ export const searchUsers = async ({ username, userId }) => {
 export const isUsernameAvailable = async (username) => {
   const exists = await User.exists({ username: username.toLowerCase() });
   return !exists;
+};
+
+export const linkPendingTeamRegistrations = async (user) => {
+  const pendingTeams = await Team.find({
+    "members.email": user.email.toLowerCase(),
+    "members.status": "pending"
+  });
+
+  for (const team of pendingTeams) {
+    // Update member status
+    await Team.updateOne(
+      { _id: team._id, "members.email": user.email.toLowerCase() },
+      { 
+        $set: { 
+          "members.$.status": "registered",
+          "members.$.user": user._id,
+          "members.$.userId": user.userId
+        } 
+      }
+    );
+
+    // Create ticket
+    const event = await Event.findById(team.event);
+    if (event) {
+      const ticket = await generateTicket({
+        eventId: event._id,
+        userId: user._id,
+        registrationDetails: {
+          email: user.email,
+          teamId: team.teamId,
+          teamName: team.name
+        }
+      });
+      
+      ticket.team = team._id;
+      await ticket.save();
+
+      // Update User joinedEvents
+      await User.findByIdAndUpdate(user._id, {
+        $addToSet: { joinedEvents: event._id },
+        $push: {
+          notifications: {
+            title: "Added to Team",
+            message: `You have been added to team "${team.name}" for ${event.title}.`,
+            type: "success",
+          },
+        },
+      });
+
+      // Update Event participants
+      await Event.findByIdAndUpdate(event._id, {
+        $addToSet: { participants: user._id }
+      });
+    }
+  }
 };

@@ -36,6 +36,12 @@ const ticketSchema = new mongoose.Schema(
       organization: String,
       socialLink: String,
       message: String,
+      teamName: String,
+      teamId: String,
+    },
+    team: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Team",
     },
     createdAt: {
       type: Date,

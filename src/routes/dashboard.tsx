@@ -16,6 +16,7 @@ import {
   FiXCircle,
   FiSearch,
   FiMail,
+  FiHash,
 } from "react-icons/fi";
 import { PageShell } from "@/components/PageShell";
 import { toast } from "sonner";
@@ -53,6 +54,8 @@ interface ParticipantDetail {
     organization: string;
     socialLink: string;
     message: string;
+    teamId?: string;
+    teamName?: string;
   };
 }
 
@@ -65,6 +68,7 @@ function OrganizerDashboard() {
   const [selectedParticipant, setSelectedParticipant] = useState<ParticipantDetail | null>(null);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchMyEvents = async (silent = false) => {
     if (!dbUser) return;
@@ -162,6 +166,14 @@ function OrganizerDashboard() {
     totalParticipants: events.reduce((acc, e) => acc + e.participants.length, 0),
   };
 
+  const filteredParticipants = participants.filter(p => 
+    p.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.userId.includes(searchTerm) ||
+    p.registrationDetails?.teamId?.includes(searchTerm) ||
+    p.registrationDetails?.teamName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.registrationDetails?.fullName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <PageShell>
       <div className="min-h-screen bg-background pt-32 pb-20 px-6">
@@ -180,15 +192,6 @@ function OrganizerDashboard() {
             
             <div className="flex flex-wrap items-center gap-3">
               <button
-                onClick={handleSyncProfile}
-                disabled={isRefreshing}
-                className="flex items-center gap-2 px-6 py-3 rounded-2xl glass border-border font-bold hover:bg-foreground/5 transition disabled:opacity-50"
-                title="Use this if your events are missing"
-              >
-                <FiActivity className={isRefreshing ? "animate-spin" : ""} />
-                {isRefreshing ? "Syncing..." : "Re-sync Profile"}
-              </button>
-              <button
                 onClick={() => fetchMyEvents(true)}
                 disabled={isRefreshing}
                 className="flex items-center gap-2 px-6 py-3 rounded-2xl glass border-border font-bold hover:bg-foreground/5 transition disabled:opacity-50"
@@ -202,13 +205,6 @@ function OrganizerDashboard() {
               >
                 <FiPlus />
                 Create New Event
-              </Link>
-              <Link
-                to="/profile"
-                className="flex items-center gap-2 px-6 py-3 rounded-2xl glass border-border font-bold hover:bg-foreground/5 transition"
-              >
-                <FiUser />
-                View Profile
               </Link>
             </div>
           </div>
@@ -316,7 +312,7 @@ function OrganizerDashboard() {
                   Registrations
                 </h3>
 
-                <div className="glass rounded-[2.5rem] border-border overflow-hidden min-h-[400px]">
+                <div className="glass rounded-[2.5rem] border-border overflow-hidden min-h-[400px] flex flex-col">
                   {!selectedEventId ? (
                     <div className="p-8 text-center flex flex-col items-center justify-center h-full min-h-[400px]">
                       <div className="h-16 w-16 rounded-full bg-foreground/5 flex items-center justify-center mb-4">
@@ -327,28 +323,36 @@ function OrganizerDashboard() {
                       </p>
                     </div>
                   ) : (
-                    <div className="p-0">
-                      <div className="p-6 border-b border-border bg-foreground/[0.02]">
+                    <>
+                      <div className="p-6 border-b border-border bg-foreground/[0.02] shrink-0">
                         <h4 className="font-bold truncate">
                           {events.find(e => e._id === selectedEventId)?.title}
                         </h4>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-1">
-                          {participants.length} Registered Participants
-                        </p>
+                        
+                        <div className="relative mt-4">
+                          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+                          <input
+                            type="text"
+                            placeholder="Search by UID, Team ID, or Name..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 rounded-xl glass border-border text-xs focus:ring-2 focus:ring-foreground/10 outline-none"
+                          />
+                        </div>
                       </div>
                       
-                      <div className="max-h-[500px] overflow-y-auto">
+                      <div className="flex-1 overflow-y-auto">
                         {loadingParticipants ? (
                           <div className="p-12 text-center">
                             <div className="h-6 w-6 mx-auto rounded-full border-2 border-foreground/20 border-t-foreground animate-spin" />
                           </div>
-                        ) : participants.length === 0 ? (
+                        ) : filteredParticipants.length === 0 ? (
                           <div className="p-12 text-center italic text-sm text-muted-foreground">
-                            No registrations yet.
+                            {searchTerm ? "No matches found." : "No registrations yet."}
                           </div>
                         ) : (
                           <div className="divide-y divide-border">
-                            {participants.map((p) => (
+                            {filteredParticipants.map((p) => (
                               <div 
                                 key={p._id} 
                                 className={`p-4 hover:bg-foreground/[0.04] transition cursor-pointer ${selectedParticipant?._id === p._id ? "bg-foreground/[0.03]" : ""}`}
@@ -363,12 +367,14 @@ function OrganizerDashboard() {
                                       {p.registrationDetails?.fullName || (p.firstName ? `${p.firstName} ${p.lastName}` : p.username)}
                                     </div>
                                     <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                                      <FiMail size={10} />
-                                      <span className="truncate">{p.registrationDetails?.email || p.email}</span>
+                                      <FiHash size={10} />
+                                      <span className="truncate">{p.userId}</span>
                                     </div>
                                   </div>
-                                  {p.registrationDetails && (
-                                    <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" title="Form details available" />
+                                  {p.registrationDetails?.teamId && (
+                                    <div className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase">
+                                      {p.registrationDetails.teamId}
+                                    </div>
                                   )}
                                 </div>
 
@@ -381,6 +387,12 @@ function OrganizerDashboard() {
                                       className="overflow-hidden"
                                     >
                                       <div className="pt-4 mt-4 border-t border-border space-y-3">
+                                        {p.registrationDetails.teamName && (
+                                          <div>
+                                            <div className="text-[8px] text-muted-foreground uppercase font-bold tracking-widest">Team Name</div>
+                                            <div className="text-[10px] font-black text-blue-600 uppercase">{p.registrationDetails.teamName}</div>
+                                          </div>
+                                        )}
                                         <div className="grid grid-cols-2 gap-4">
                                           <div>
                                             <div className="text-[8px] text-muted-foreground uppercase font-bold">Phone</div>
@@ -391,28 +403,10 @@ function OrganizerDashboard() {
                                             <div className="text-[10px] font-medium">{p.registrationDetails.organization}</div>
                                           </div>
                                         </div>
-                                        {p.registrationDetails.socialLink && (
-                                          <div>
-                                            <div className="text-[8px] text-muted-foreground uppercase font-bold">Social Link</div>
-                                            <a 
-                                              href={p.registrationDetails.socialLink} 
-                                              target="_blank" 
-                                              rel="noreferrer"
-                                              className="text-[10px] text-blue-500 hover:underline truncate block"
-                                              onClick={(e) => e.stopPropagation()}
-                                            >
-                                              {p.registrationDetails.socialLink}
-                                            </a>
-                                          </div>
-                                        )}
-                                        {p.registrationDetails.message && (
-                                          <div>
-                                            <div className="text-[8px] text-muted-foreground uppercase font-bold">Message</div>
-                                            <div className="text-[10px] text-muted-foreground italic leading-relaxed">
-                                              "{p.registrationDetails.message}"
-                                            </div>
-                                          </div>
-                                        )}
+                                        <div>
+                                          <div className="text-[8px] text-muted-foreground uppercase font-bold">Email</div>
+                                          <div className="text-[10px] font-medium truncate">{p.registrationDetails.email}</div>
+                                        </div>
                                       </div>
                                     </motion.div>
                                   )}
@@ -424,19 +418,19 @@ function OrganizerDashboard() {
                       </div>
                       
                       {participants.length > 0 && (
-                        <div className="p-6 border-t border-border bg-foreground/[0.02]">
+                        <div className="p-6 border-t border-border bg-foreground/[0.02] shrink-0">
                           <button
                             onClick={() => {
                               const csvContent = "data:text/csv;charset=utf-8," 
-                                + "Name,Email,Phone,Organization,Social Link,Message,Username,User ID\n"
+                                + "Name,Email,Phone,Organization,Team Name,Team ID,User ID\n"
                                 + participants.map(p => {
                                   const name = p.registrationDetails?.fullName || `${p.firstName || ""} ${p.lastName || ""}`;
                                   const email = p.registrationDetails?.email || p.email;
                                   const phone = p.registrationDetails?.phone || "";
                                   const org = p.registrationDetails?.organization || "";
-                                  const social = p.registrationDetails?.socialLink || "";
-                                  const msg = (p.registrationDetails?.message || "").replace(/,/g, " ");
-                                  return `${name},${email},${phone},${org},${social},${msg},${p.username},${p.userId}`;
+                                  const tName = p.registrationDetails?.teamName || "";
+                                  const tId = p.registrationDetails?.teamId || "";
+                                  return `${name},${email},${phone},${org},${tName},${tId},${p.userId}`;
                                 }).join("\n");
                               const encodedUri = encodeURI(csvContent);
                               const link = document.createElement("a");
@@ -449,11 +443,11 @@ function OrganizerDashboard() {
                             className="w-full py-3 rounded-xl glass border-border text-xs font-bold flex items-center justify-center gap-2 hover:bg-foreground/5 transition"
                           >
                             <FiActivity size={14} />
-                            Export Full CSV List
+                            Export Attendee List
                           </button>
                         </div>
                       )}
-                    </div>
+                    </>
                   )}
                 </div>
               </div>

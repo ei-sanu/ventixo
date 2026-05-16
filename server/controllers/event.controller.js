@@ -55,17 +55,20 @@ export const getEventDetails = asyncHandler(async (req, res) => {
 });
 
 export const joinCurrentUserToEvent = asyncHandler(async (req, res) => {
-  const event = await joinEvent({
+  const { registrationDetails, members } = req.body;
+  const { team, tickets } = await joinEvent({
     eventId: req.params.id,
     user: req.user,
-    registrationDetails: req.body.registrationDetails,
+    registrationDetails,
+    members,
   });
 
   return res.status(200).json({
     success: true,
     message: "Joined event successfully",
     data: {
-      event,
+      team,
+      tickets,
     },
   });
 });
